@@ -57,8 +57,7 @@
 
 -define(SERVER, ?MODULE).
 -define(PARSER_OPTIONS,
-        [{engine, expat},
-         {names_as_atom, true},
+        [{names_as_atom, true},
          {check_nss, xmpp},
          {check_elems, xmpp},
          {emit_endtag, true},
