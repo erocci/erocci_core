@@ -48,6 +48,9 @@
 -export([encode/1,
 	 decode/1]).
 
+-type t() :: uri().
+-export_type([t/0]).
+
 %%%
 %%% API
 %%%

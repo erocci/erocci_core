@@ -26,6 +26,7 @@
 -export([new/1,
 	 new/2,
 	 get_id/1,
+	 id/1,
 	 get_class/1,
 	 get_scheme/1,
 	 get_term/1,
@@ -44,6 +45,9 @@ new(Scheme, Term) ->
     new(#occi_cid{scheme=Scheme, term=Term, class=action}).
 
 get_id(#occi_action{id=Id}) -> 
+    Id.
+
+id(#occi_action{id=Id}) -> 
     Id.
 
 get_class(_) -> 

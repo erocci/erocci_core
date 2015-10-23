@@ -25,6 +25,7 @@
 
 -export([new/1,
 	 new/2,
+	 new/4,
 	 set_id/2,
 	 add_mixin/2,
 	 del_mixin/2,
@@ -35,7 +36,10 @@
 -export([merge_attrs/2,
 	 rm_attrs/2]).
 
--spec new(occi_kind()) -> occi_resource() | occi_link().
+-type t() :: occi_resource() | occi_link().
+-export_type([t/0]).
+
+-spec new(occi_kind()) -> t().
 new(#occi_kind{}=Kind) ->
     case occi_kind:get_parent(Kind) of
 	?cid_resource ->
@@ -44,7 +48,7 @@ new(#occi_kind{}=Kind) ->
 	    occi_link:new(Kind)
     end.
 
--spec new(uri(), occi_kind()) -> occi_resource() | occi_link().
+-spec new(uri(), occi_kind()) -> t().
 new(Id, #occi_kind{}=Kind) ->
     case occi_kind:get_parent(Kind) of
 	?cid_resource ->
@@ -53,7 +57,23 @@ new(Id, #occi_kind{}=Kind) ->
 	    occi_link:new(Id, Kind)
     end.
 
--spec set_id(occi_resource() | occi_link(), uri()) -> occi_resource() | occi_link().
+-spec new(Id :: occi_uri:t(), KindId :: occi_cid:t(), MixinIds :: [occi_cid:t()], 
+	  Attrs :: [{occi_attribute:key(), occi_attribute:value()}]) -> t().
+new(Id, KindId, MixinIds, Attrs) ->
+    {ok, Kind} = occi_category_mgr:get(KindId),
+    Mixins = lists:foldl(fun (MixinId, Acc) ->
+				 {ok, Mixin} = occi_category_mgr:get(MixinId),
+				 [ Mixin | Acc ]
+			 end, [], MixinIds),
+    case occi_kind:parent(Kind) of
+	?cid_resource ->
+	    occi_resource:new(Id, Kind, Mixins, Attrs);
+	?cid_link ->
+	    occi_link:new(Id, Kind, Mixins, Attrs, undefined, undefined)
+    end.
+
+
+-spec set_id(occi_resource() | occi_link(), uri()) -> t().
 set_id(#occi_resource{}=R, Id) ->
     occi_resource:set_attr_value(R, 'occi.core.id', Id);
 set_id(#occi_link{}=L, Id) ->

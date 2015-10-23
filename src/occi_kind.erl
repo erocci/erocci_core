@@ -25,6 +25,7 @@
 
 -export([new/2,
 	 get_parent/1,
+	 parent/1,
 	 set_parent/2,
 	 get_actions/1,
 	 add_action/2,
@@ -38,6 +39,9 @@
 	 get_attributes/1,
 	 get_attr_list/1,
 	 get_location/1]).
+
+-type t() :: #occi_kind{}.
+-export_type([t/0]).
 
 new(Scheme, Term) ->
     #occi_kind{id=#occi_cid{scheme=Scheme, term=Term, class=kind},
@@ -82,6 +86,8 @@ add_action(#occi_kind{actions=Actions}=Kind, Action) ->
     Kind#occi_kind{actions=orddict:store(occi_action:get_id(Action), Action, Actions)}.
 
 get_parent(#occi_kind{parent=Parent}) ->
+    Parent.
+parent(#occi_kind{parent=Parent}) ->
     Parent.
 
 set_parent(#occi_kind{}=Kind, #occi_cid{}=Cid) ->

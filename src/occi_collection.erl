@@ -26,16 +26,21 @@
 -export([new/0,
 	 new/1,
 	 new/2,
+	 id/1,
 	 add_entity/2,
 	 add_entities/2,
 	 del_entity/2,
 	 del_entities/2,
 	 get_entities/1,
+	 entities/1,
 	 is_empty/1,
 	 merge/2,
 	 fold/2,
 	 add_prefix/2,
 	 rm_prefix/2]).
+
+-type t() :: #occi_collection{}.
+-export_type([t/0]).
 
 new() ->
     #occi_collection{entities=ordsets:new()}.
@@ -53,6 +58,10 @@ new(#uri{}=Id, Elements) when is_list(Elements) ->
 
 new(#occi_cid{}=Cid, Elements) when is_list(Elements) ->
     #occi_collection{id=Cid, entities=ordsets:from_list(Elements)}.
+
+
+id(#occi_collection{id=Id}) ->
+    Id.
 
 
 add_entity(#occi_collection{entities=E}=C, Uri) ->
@@ -74,6 +83,8 @@ del_entities(#occi_collection{entities=E}=C, Uris) ->
 get_entities(#occi_collection{entities=E}) ->
     ordsets:to_list(E).
 
+entities(#occi_collection{entities=E}) ->
+    ordsets:to_list(E).
 
 is_empty(#occi_collection{entities=E}) ->
     case ordsets:size(E) of

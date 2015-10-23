@@ -50,6 +50,10 @@
 
 -export([reset/1]).
 
+-type key() :: occi_attr_key().
+-type value() :: any().
+-export_type([key/0, value/0]).
+
 -define(attr_default, [{immutable, false},
 		       {required, false},
 		       {default, undefined}]).

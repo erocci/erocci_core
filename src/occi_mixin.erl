@@ -28,6 +28,7 @@
 	 new/1,
 	 new/2, 
 	 get_id/1,
+	 id/1,
 	 get_class/1,
 	 get_scheme/1,
 	 set_scheme/2,
@@ -68,6 +69,9 @@ new(_) ->
     throw({error, invalid_cid}).
 
 get_id(#occi_mixin{id=Id}) -> 
+    Id.
+
+id(#occi_mixin{id=Id}) -> 
     Id.
 
 get_class(_) -> 

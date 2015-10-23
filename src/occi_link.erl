@@ -26,7 +26,7 @@
 -export([new/0,
          new/1,
          new/2,
-         new/5,
+         new/6,
          get_id/1,
          set_id/2,
          get_cid/1,
@@ -78,8 +78,8 @@ new(#occi_kind{}=Kind) ->
 new(Id) ->
     #occi_link{id=Id, attributes=orddict:from_list(?CORE_ATTRS)}.
 
--spec new(occi_objid(), occi_kind(), [occi_mixin()], [{atom(), term}], uri()) -> occi_link().
-new(Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
+-spec new(occi_objid(), occi_kind(), [occi_mixin()], [{atom(), term}], uri(), uri()) -> occi_link().
+new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
     Attrs = [?CORE_ATTRS,
 	     orddict:to_list(occi_kind:get_attributes(Kind)),
 	     lists:map(fun (Mixin) ->
@@ -88,6 +88,7 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes, Target) ->
     L = #occi_link{id=Id,
                    cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
+		   source=Source,
                    target=Target},
     lists:foldl(fun ({Key, Value}, Acc) ->
                          occi_link:set_attr_value(Acc, Key, Value)

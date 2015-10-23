@@ -24,12 +24,15 @@
 -include("occi.hrl").
 
 -export([new/2,
+	 id/1,
 	 get_objid/1,
+	 objid/1,
 	 get_type/1,
 	 set_type/2,
 	 get_parent/1,
 	 get_data/1,
 	 set_data/2,
+	 owner/1,
 	 add_prefix/2,
 	 rm_prefix/2]).
 
@@ -72,8 +75,14 @@ new(#occi_mixin{id=ObjId, location=#uri{path=Path}}=Data, Owner) ->
     #occi_node{id=#uri{path=Path}, objid=ObjId, type=capabilities, owner=Owner, data=Data}.
 
 
+-spec id(occi_node()) -> uri().
+id(#occi_node{id=Id}) ->
+    Id.
+
 -spec get_objid(occi_node()) -> any().
 get_objid(#occi_node{objid=Id}) ->
+    Id.
+objid(#occi_node{objid=Id}) ->
     Id.
 
 -spec get_type(occi_node()) -> occi_node_type().
@@ -103,6 +112,10 @@ set_data(#occi_node{type=occi_user_mixin}=Node, #occi_mixin{}=Data) ->
     Node#occi_node{data=Data};
 set_data(#occi_node{type=Type}, _) ->
     throw({invalid_data_type, Type}).
+
+-spec owner(occi_node()) -> term().
+owner(#occi_node{owner=Owner}) ->
+    Owner.
 
 -spec add_prefix(occi_node(), list()) -> occi_node().
 add_prefix(#occi_node{id='_'}=Node, _) ->

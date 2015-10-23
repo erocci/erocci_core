@@ -23,7 +23,11 @@
 
 -include("occi.hrl").
 
--export([parse/1]).
+-export([parse/1,
+		 to_binary/1]).
+
+-type t() :: #occi_cid{}.
+-export_type([t/0]).
 
 -spec parse(binary()) -> occi_cid().
 parse(undefined) ->
@@ -35,3 +39,17 @@ parse(Bin) when is_binary(Bin) ->
 	_ ->
 	    throw({error, {invalid_cid, Bin}})
     end.
+
+
+-spec to_binary(occi_cid()) -> binary().
+to_binary('_') ->
+	<<>>;
+to_binary(undefined) ->
+	<<>>;
+to_binary(#occi_cid{scheme=Scheme}=Cid) when is_atom(Scheme) ->
+    to_binary(Cid#occi_cid{scheme=atom_to_binary(Scheme, utf8)});
+to_binary(#occi_cid{term=Term}=Cid) when is_atom(Cid) ->
+    to_binary(Cid#occi_cid{term=Term});
+to_binary(#occi_cid{scheme=Scheme, term=Term}) ->
+    <<Scheme, Term>>.
+
