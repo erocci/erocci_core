@@ -31,7 +31,7 @@
 
 %% API
 -export([load_extension/1,
-	 parse_extension/1,
+		 parse_extension/1,
          parse_el/1,
          parse_full/1,
          parse_action/3,

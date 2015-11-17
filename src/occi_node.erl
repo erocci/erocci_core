@@ -28,6 +28,7 @@
 	 get_objid/1,
 	 objid/1,
 	 get_type/1,
+	 type/1,
 	 set_type/2,
 	 get_parent/1,
 	 get_data/1,
@@ -87,6 +88,10 @@ objid(#occi_node{objid=Id}) ->
 
 -spec get_type(occi_node()) -> occi_node_type().
 get_type(#occi_node{type=Type}) ->
+    Type.
+
+-spec type(occi_node()) -> occi_node_type().
+type(#occi_node{type=Type}) ->
     Type.
 
 -spec set_type(occi_node(), occi_node_type()) -> occi_node().
