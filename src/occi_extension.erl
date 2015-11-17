@@ -30,7 +30,9 @@
 	 get_version/1,
 	 get_categories/1,
 	 get_kinds/1,
+	 kinds/1,
 	 get_mixins/1,
+	 mixins/1,
 	 get_actions/1,
 	 add_kind/2,
 	 add_mixin/2,
@@ -60,7 +62,13 @@ get_categories(#occi_extension{kinds=Kinds, mixins=Mixins}) ->
 get_kinds(#occi_extension{kinds=Kinds}) ->
     Kinds.
 
+kinds(#occi_extension{kinds=Kinds}) ->
+    Kinds.
+
 get_mixins(#occi_extension{mixins=Mixins}) ->
+    Mixins.
+
+mixins(#occi_extension{mixins=Mixins}) ->
     Mixins.
 
 get_actions(#occi_extension{}=Ext) ->
