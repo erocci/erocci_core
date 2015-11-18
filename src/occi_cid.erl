@@ -62,6 +62,11 @@ to_binary(#occi_cid{scheme=Scheme, term=Term}) when is_binary(Scheme), is_binary
 %%% eunit
 %%%
 -ifdef(TEST).
+parse_test_() ->
+	[
+	 ?_assertThrow({error, invalid_cid}, parse(undefined))
+	].
+
 to_binary_test_() ->
 	[
 	 ?_assertEqual(<<>>, 
