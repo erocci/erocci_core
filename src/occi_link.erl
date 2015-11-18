@@ -28,6 +28,7 @@
          new/2,
          new/6,
          get_id/1,
+         id/1,
          set_id/2,
          get_cid/1,
          set_cid/2,
@@ -47,8 +48,8 @@
          add_prefix/2,
          rm_prefix/2,
          update_attr_value/2,
-	 has_category/2,
-	 match_attr/3]).
+     has_category/2,
+     match_attr/3]).
 
 -export([reset/1]).
 
@@ -64,14 +65,14 @@ new() ->
 -spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_link().
 new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
-	     ?CORE_ATTRS],
+         ?CORE_ATTRS],
     #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
                attributes=orddict:from_list(lists:flatten(Attrs))}.
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
-	     ?CORE_ATTRS],
+         ?CORE_ATTRS],
     #occi_link{cid=occi_kind:get_id(Kind), 
                attributes=orddict:from_list(lists:flatten(Attrs))};
 
@@ -81,14 +82,14 @@ new(Id) ->
 -spec new(occi_objid(), occi_kind(), [occi_mixin()], [{atom(), term}], uri(), uri()) -> occi_link().
 new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
     Attrs = [?CORE_ATTRS,
-	     orddict:to_list(occi_kind:get_attributes(Kind)),
-	     lists:map(fun (Mixin) ->
-			       orddict:to_list(occi_kind:get_attributes(Mixin))
-		       end, Mixins)],
+         orddict:to_list(occi_kind:get_attributes(Kind)),
+         lists:map(fun (Mixin) ->
+                   orddict:to_list(occi_kind:get_attributes(Mixin))
+               end, Mixins)],
     L = #occi_link{id=Id,
                    cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
-		   source=Source,
+           source=Source,
                    target=Target},
     lists:foldl(fun ({Key, Value}, Acc) ->
                          occi_link:set_attr_value(Acc, Key, Value)
@@ -96,6 +97,9 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
 
 -spec get_id(occi_link()) -> uri().
 get_id(#occi_link{id=Id}) ->
+    Id.
+
+id(#occi_link{id=Id}) ->
     Id.
 
 -spec set_id(occi_link(), occi_objid()) -> occi_link().
@@ -200,7 +204,7 @@ get_attr_value(#occi_link{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, #occi_attr{value=V}} -> V;
         _ -> throw({error, invalid_attribute})
-    end.	    
+    end.        
 
 -spec get_attributes(occi_link()) -> [occi_attr()].
 get_attributes(#occi_link{attributes=Attrs}) ->
@@ -215,20 +219,20 @@ reset(#occi_link{attributes=Attrs}=Link) ->
 -spec add_prefix(occi_link(), string()) -> occi_link().
 add_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
     Link#occi_link{id=case Link#occi_link.id of
-			  #uri{}=Uri -> occi_uri:add_prefix(Uri, Prefix);
-			  Else -> Else
-		      end,
-		   source=occi_uri:add_prefix(Src, Prefix),
-		   target=occi_uri:add_prefix(Target, Prefix)}.
+              #uri{}=Uri -> occi_uri:add_prefix(Uri, Prefix);
+              Else -> Else
+              end,
+           source=occi_uri:add_prefix(Src, Prefix),
+           target=occi_uri:add_prefix(Target, Prefix)}.
 
 -spec rm_prefix(occi_link(), string()) -> occi_link().
 rm_prefix(#occi_link{source=Src, target=Target}=Link, Prefix) ->
     Link#occi_link{id=case Link#occi_link.id of
-			  #uri{}=Uri -> occi_uri:rm_prefix(Uri, Prefix);
-			  Else -> Else
-		      end,
-		   source=occi_uri:rm_prefix(Src, Prefix),
-		   target=occi_uri:rm_prefix(Target, Prefix)}.
+              #uri{}=Uri -> occi_uri:rm_prefix(Uri, Prefix);
+              Else -> Else
+              end,
+           source=occi_uri:rm_prefix(Src, Prefix),
+           target=occi_uri:rm_prefix(Target, Prefix)}.
 
 
 -spec has_category(occi_link(), occi_cid()) -> true | false.
@@ -248,7 +252,7 @@ match_attr(#occi_resource{attributes=Attr}, Name, Val) ->
     case orddict:find(Name, Attr) of
         {ok, A} -> occi_attribute:match_value(A, Val);
         _ -> false
-    end.	    
+    end.        
 
 %%%
 %%% Priv
@@ -258,6 +262,6 @@ match_attr2([], _) ->
 
 match_attr2([{_, Attr} | Rest], Val) ->
     case occi_attribute:match_value(Attr, Val) of
-	true -> true;
-	false -> match_attr2(Rest, Val)
+    true -> true;
+    false -> match_attr2(Rest, Val)
     end.

@@ -25,6 +25,7 @@
 
 -export([new/1,
          get_id/1,
+         id/1,
          get_type/1,
          get_type_id/1,
          set_type/2,
@@ -36,6 +37,7 @@
          set_default/2,
          set_value/2,
          get_value/1,
+         value/1,
          set_title/2,
          get_title/1,
          check/1,
@@ -63,6 +65,9 @@ new(Id) when is_binary(Id);
     #occi_attr{id=Id, properties=dict:from_list(?attr_default)}.
 
 get_id(A) ->
+    A#occi_attr.id.
+
+id(A) ->
     A#occi_attr.id.
 
 get_type_id(#occi_attr{type=Id}) ->
@@ -93,6 +98,9 @@ set_default(#occi_attr{properties=Props}=A, Value) ->
     A#occi_attr{properties=dict:store(default, Value, Props)}.
 
 get_value(#occi_attr{value=Value}) ->
+    Value.
+
+value(#occi_attr{value=Value}) ->
     Value.
 
 set_value(#occi_attr{type=Type}=A, Value) ->

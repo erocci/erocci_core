@@ -28,6 +28,7 @@
          new/2,
          new/4,
          get_id/1,
+         id/1,
          set_id/2,
          get_cid/1,
          set_cid/2,
@@ -98,6 +99,9 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes) ->
 
 -spec get_id(occi_resource()) -> uri().
 get_id(#occi_resource{id=Id}) ->
+    Id.
+
+id(#occi_resource{id=Id}) ->
     Id.
 
 -spec set_id(occi_resource(), occi_objid() | binary()) -> occi_resource().
