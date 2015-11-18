@@ -35,25 +35,25 @@
 %%%===================================================================
 render(#occi_node{type=occi_collection, data=Coll}, Env) ->
     Data = lists:map(fun (#uri{}=Id) ->
-			     [ occi_uri:to_iolist(Id, Env), "\n"];
-			 (#occi_node{id=Id}) ->
-			     [ occi_uri:to_iolist(Id, Env), "\n" ]
-		     end, occi_collection:get_entities(Coll)),
+                             [ occi_uri:to_iolist(Id, Env), "\n"];
+                         (#occi_node{id=Id}) ->
+                             [ occi_uri:to_iolist(Id, Env), "\n" ]
+                     end, occi_collection:get_entities(Coll)),
     {Data, Env};
 
 render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env) ->
     Data = occi_renderer:join(
-	     lists:reverse(
-	       lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri, Env)|Acc];
-			       (#occi_mixin{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri, Env)|Acc];
-			       (#occi_action{location=undefined}, Acc) ->
-				   Acc;
-			       (#occi_action{location=#uri{}=Uri}, Acc) ->
-				   [occi_uri:to_iolist(Uri, Env)|Acc]
-			   end, [], Kinds ++ Mixins ++ Actions)),
-	     <<"\n">>),
+             lists:reverse(
+               lists:foldl(fun (#occi_kind{location=#uri{}=Uri}, Acc) ->
+                                   [occi_uri:to_iolist(Uri, Env)|Acc];
+                               (#occi_mixin{location=#uri{}=Uri}, Acc) ->
+                                   [occi_uri:to_iolist(Uri, Env)|Acc];
+                               (#occi_action{location=undefined}, Acc) ->
+                                   Acc;
+                               (#occi_action{location=#uri{}=Uri}, Acc) ->
+                                   [occi_uri:to_iolist(Uri, Env)|Acc]
+                           end, [], Kinds ++ Mixins ++ Actions)),
+             <<"\n">>),
     {Data, Env}.
 
 %%%
