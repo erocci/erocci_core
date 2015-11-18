@@ -24,20 +24,20 @@
 -include("occi.hrl").
 
 -export([new/0,
-	 new/1,
-	 new/2,
-	 id/1,
-	 add_entity/2,
-	 add_entities/2,
-	 del_entity/2,
-	 del_entities/2,
-	 get_entities/1,
-	 entities/1,
-	 is_empty/1,
-	 merge/2,
-	 fold/2,
-	 add_prefix/2,
-	 rm_prefix/2]).
+         new/1,
+         new/2,
+         id/1,
+         add_entity/2,
+         add_entities/2,
+         del_entity/2,
+         del_entities/2,
+         get_entities/1,
+         entities/1,
+         is_empty/1,
+         merge/2,
+         fold/2,
+         add_prefix/2,
+         rm_prefix/2]).
 
 -type t() :: #occi_collection{}.
 -export_type([t/0]).
@@ -88,8 +88,8 @@ entities(#occi_collection{entities=E}) ->
 
 is_empty(#occi_collection{entities=E}) ->
     case ordsets:size(E) of
-	0 -> true;
-	_ -> false
+        0 -> true;
+        _ -> false
     end.
 
 merge(#occi_collection{}=C, undefined) ->
@@ -102,22 +102,22 @@ merge(_C1, _C2) ->
 
 fold(#occi_collection{entities=E}=C, F) when is_function(F) ->
     E2 = ordsets:fold(fun (Uri, Acc) ->
-			      ordsets:add_element(F(Uri), Acc)
-		      end, ordsets:new(), E),
+                              ordsets:add_element(F(Uri), Acc)
+                      end, ordsets:new(), E),
     C#occi_collection{entities=E2}.
 
 -spec add_prefix(occi_collection(), string()) -> occi_collection().
 add_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
     fold(Coll, fun (#uri{}=Uri) -> 
-		       occi_uri:add_prefix(Uri, Prefix);
-		   (#occi_node{}=Node) ->
-		       occi_node:add_prefix(Node, Prefix)
-	       end).
+                       occi_uri:add_prefix(Uri, Prefix);
+                   (#occi_node{}=Node) ->
+                       occi_node:add_prefix(Node, Prefix)
+               end).
 
 -spec rm_prefix(occi_collection(), string()) -> occi_collection().
 rm_prefix(#occi_collection{}=Coll, Prefix) when is_list(Prefix) ->
     fold(Coll, fun (#uri{}=Uri) -> 
-		       occi_uri:rm_prefix(Uri, Prefix);
-		   (#occi_node{}=Node) ->
-		       occi_node:rm_prefix(Node, Prefix)
-	       end).
+                       occi_uri:rm_prefix(Uri, Prefix);
+                   (#occi_node{}=Node) ->
+                       occi_node:rm_prefix(Node, Prefix)
+               end).
