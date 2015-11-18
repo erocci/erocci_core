@@ -117,6 +117,7 @@ save(#occi_node{id=#uri{path=Path}, owner=User}=Node, #occi_store_ctx{user=_User
                             case occi_backend:save(Ref, occi_node:rm_prefix(Node, Prefix)) of
                                 ok -> ok;
                                 {error, _Err} -> 
+									?debug("backend error: ~p", [_Err]),
                                     {error, 400}
                             end;
                         {error, _Err} ->
@@ -137,6 +138,7 @@ update(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixi
                         ok ->   occi_category_mgr:register_mixin(Mixin),
                                 ok;
                         {error, _Err} ->
+							?debug("backend error: ~p", [_Err]),
                             {error, 400}
                     end;
                 {error, _Err} ->
@@ -157,6 +159,7 @@ update(#occi_node{id=#uri{path=Path}, owner=_User}=Node, #occi_store_ctx{user=Us
                         case occi_backend:update(Ref, occi_node:rm_prefix(Node, Prefix)) of
                             ok ->   ok;
                             {error, _Err} ->
+								?debug("backend error: ~p", [_Err]),
                                 {error, 400}
                         end;
                     {error, _Err} ->
@@ -276,6 +279,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, anonymous) ->
                 {ok, Node2} ->
                     {ok, occi_node:add_prefix(Node2, Prefix)};
                 {error, _Err} ->
+					?debug("backend error: ~p", [_Err]),
                     {error, 400}
             end;
         {error, _Err} ->
@@ -291,6 +295,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, #occi_store_ctx{
                             {ok, Node2} ->
                                 {ok, occi_node:add_prefix(Node2, Prefix)};
                             {error, _Err} ->
+								?debug("backend error: ~p", [_Err]),
                                 {error, 400}
                         end;
                     {error, _Err} ->
@@ -359,6 +364,7 @@ delete(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixi
                 ok ->   occi_category_mgr:unregister_mixin(Mixin),
                         ok;
                 {error, _Err} ->
+					?debug("backend error: ~p", [_Err]),
                     {error, 400}
             end;
         {error, _Err} ->
