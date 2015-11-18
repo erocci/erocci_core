@@ -44,13 +44,13 @@
          add_prefix/2,
          rm_prefix/2,
          update_attr_value/2,
-	 has_category/2,
-	 match_attr/3]).
+         has_category/2,
+         match_attr/3]).
 
 -export([reset/1]).
 
 -define(CORE_ATTRS, [{'occi.core.title', occi_attribute:core_title()},
-		     {'occi.core.summary', occi_attribute:core_summary()}]).
+                     {'occi.core.summary', occi_attribute:core_summary()}]).
 
 %%%
 %%% API
@@ -62,38 +62,38 @@ new() ->
 -spec new(occi_kind() | term()) -> occi_resource().
 new(#occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
-	     ?CORE_ATTRS],
+             ?CORE_ATTRS],
     #occi_resource{cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()};
 new(Id) ->
     #occi_resource{id=Id, 
-		   attributes=orddict:from_list(?CORE_ATTRS), 
-		   links=sets:new()}.
+                   attributes=orddict:from_list(?CORE_ATTRS), 
+                   links=sets:new()}.
 
 -spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_resource().
 new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
-	     ?CORE_ATTRS],
+             ?CORE_ATTRS],
     #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
                    attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()}.
 
 -spec new(Id :: occi_objid(), 
-	  Kind :: occi_kind(), 
-	  Mixins :: [occi_mixin()], 
-	  Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
+          Kind :: occi_kind(), 
+          Mixins :: [occi_mixin()], 
+          Attributes :: [{Key :: atom(), Val :: term}]) -> occi_resource().
 new(Id, #occi_kind{}=Kind, Mixins, Attributes) ->
     Attrs = [?CORE_ATTRS,
-	     orddict:to_list(occi_kind:get_attributes(Kind)),
-	     lists:map(fun (Mixin) ->
-			       orddict:to_list(occi_kind:get_attributes(Mixin))
-		       end, Mixins)],
+             orddict:to_list(occi_kind:get_attributes(Kind)),
+             lists:map(fun (Mixin) ->
+                               orddict:to_list(occi_kind:get_attributes(Mixin))
+                       end, Mixins)],
     R = #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
                        attributes=orddict:from_list(lists:flatten(Attrs)),
                        links=sets:new()},
     lists:foldl(fun ({Key, Value}, Acc) ->
-                         occi_resource:set_attr_value(Acc, Key, Value)
+                        occi_resource:set_attr_value(Acc, Key, Value)
                 end, R, Attributes).
 
 -spec get_id(occi_resource()) -> uri().
@@ -111,7 +111,7 @@ get_cid(#occi_resource{cid=Cid}) ->
 -spec set_cid(occi_resource(), occi_kind()) -> occi_resource().
 set_cid(#occi_resource{attributes=Attrs}=Res, #occi_kind{id=Cid}=Kind) ->
     Attrs2 = orddict:merge(fun (_Key, _Val1, Val2) ->
-                                    Val2
+                                   Val2
                            end, Attrs, occi_kind:get_attributes(Kind)),
     Res#occi_resource{cid=Cid, attributes=Attrs2}.
 
@@ -172,7 +172,7 @@ get_attr_value(#occi_resource{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, #occi_attr{value=V}} -> V;
         _ -> throw({error, invalid_attribute})
-    end.	    
+    end.        
 
 -spec get_attributes(occi_resource()) -> [occi_attr()].
 get_attributes(#occi_resource{attributes=Attrs}) ->
@@ -196,14 +196,14 @@ get_links_size(#occi_resource{links=Links}) ->
 -spec reset(occi_resource()) -> occi_resource().
 reset(#occi_resource{attributes=Attrs}=Res) ->
     Res#occi_resource{attributes=orddict:map(fun (_Key, Attr) ->
-                                                      occi_attribute:reset(Attr)
+                                                     occi_attribute:reset(Attr)
                                              end, Attrs)}.
 
 -spec add_prefix(occi_resource(), string()) -> occi_resource().
 add_prefix(#occi_resource{links=Links}=Res, Prefix) ->
     Links2 = sets:fold(fun (#uri{}=U, Acc) ->
-			       sets:add_element(occi_uri:add_prefix(U, Prefix), Acc);
-			   (#occi_link{}=L, Acc) ->
+                               sets:add_element(occi_uri:add_prefix(U, Prefix), Acc);
+                           (#occi_link{}=L, Acc) ->
                                sets:add_element(occi_link:add_prefix(L, Prefix), Acc)
                        end, sets:new(), Links),
     Res#occi_resource{links=Links2}.
@@ -211,8 +211,8 @@ add_prefix(#occi_resource{links=Links}=Res, Prefix) ->
 -spec rm_prefix(occi_resource(), string()) -> occi_resource().
 rm_prefix(#occi_resource{links=Links}=Res, Prefix) ->
     Links2 = sets:fold(fun (#uri{}=U, Acc) ->
-                                sets:add_element(occi_uri:rm_prefix(U, Prefix), Acc);
-                          (#occi_link{}=L, Acc) ->
+                               sets:add_element(occi_uri:rm_prefix(U, Prefix), Acc);
+                           (#occi_link{}=L, Acc) ->
                                sets:add_element(occi_link:rm_prefix(L, Prefix), Acc)
                        end, sets:new(), Links),
     Res#occi_resource{links=Links2}.
@@ -235,7 +235,7 @@ match_attr(#occi_resource{attributes=Attr}, Name, Val) ->
     case orddict:find(Name, Attr) of
         {ok, A} -> occi_attribute:match_value(A, Val);
         _ -> false
-    end.	    
+    end.        
 
 %%%
 %%% Priv
@@ -245,6 +245,6 @@ match_attr2([], _) ->
 
 match_attr2([{_, Attr} | Rest], Val) ->
     case occi_attribute:match_value(Attr, Val) of
-	true -> true;
-	false -> match_attr2(Rest, Val)
+        true -> true;
+        false -> match_attr2(Rest, Val)
     end.

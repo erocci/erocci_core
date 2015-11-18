@@ -24,29 +24,29 @@
 -include("occi.hrl").
 
 -export([new/1,
-	 get_id/1,
-	 get_type/1,
-	 get_type_id/1,
-	 set_type/2,
-	 is_required/1,
-	 set_required/2,
-	 is_immutable/1,
-	 set_immutable/2,
-	 get_default/1,
-	 set_default/2,
-	 set_value/2,
-	 get_value/1,
-	 set_title/2,
-	 get_title/1,
-	 check/1,
-	 match_value/2,
-	 add_prefix/2,
-	 rm_prefix/2]).
+         get_id/1,
+         get_type/1,
+         get_type_id/1,
+         set_type/2,
+         is_required/1,
+         set_required/2,
+         is_immutable/1,
+         set_immutable/2,
+         get_default/1,
+         set_default/2,
+         set_value/2,
+         get_value/1,
+         set_title/2,
+         get_title/1,
+         check/1,
+         match_value/2,
+         add_prefix/2,
+         rm_prefix/2]).
 -export([core_id/0,
-	 core_title/0,
-	 core_summary/0,
-	 core_src/0,
-	 core_target/0]).
+         core_title/0,
+         core_summary/0,
+         core_src/0,
+         core_target/0]).
 
 -export([reset/1]).
 
@@ -55,11 +55,11 @@
 -export_type([key/0, value/0]).
 
 -define(attr_default, [{immutable, false},
-		       {required, false},
-		       {default, undefined}]).
+                       {required, false},
+                       {default, undefined}]).
 
 new(Id) when is_binary(Id);
-	     is_atom(Id) ->
+             is_atom(Id) ->
     #occi_attr{id=Id, properties=dict:from_list(?attr_default)}.
 
 get_id(A) ->
@@ -110,8 +110,8 @@ reset(#occi_attr{}=A) ->
 
 check(#occi_attr{value=undefined}=A) ->
     case is_required(A) of
-	true -> error;
-	false -> ok
+        true -> error;
+        false -> ok
     end;
 check(#occi_attr{}=_A) ->
     ok.
@@ -140,30 +140,30 @@ rm_prefix(_, _) ->
 %%%
 core_id() ->
     Props = dict:from_list([{immutable, true},
-			    {required, true},
-			    {default, undefined}]),
+                            {required, true},
+                            {default, undefined}]),
     #occi_attr{id='occi.core.id', properties=Props, type={?xmlschema_ns, anyURI}}.
 
 core_title() ->
     Props = dict:from_list([{immutable, false},
-			    {required, false},
-			    {default, undefined}]),
+                            {required, false},
+                            {default, undefined}]),
     #occi_attr{id='occi.core.title', properties=Props, type={?xmlschema_ns, string}}.
 
 core_summary() ->
     Props = dict:from_list([{immutable, false},
-			    {required, false},
-			    {default, undefined}]),
+                            {required, false},
+                            {default, undefined}]),
     #occi_attr{id='occi.core.summary', properties=Props, type={?xmlschema_ns, string}}.
 
 core_src() ->
     Props = dict:from_list([{immutable, false},
-			    {required, true},
-			    {default, undefined}]),
+                            {required, true},
+                            {default, undefined}]),
     #occi_attr{id='occi.core.source', properties=Props, type={?xmlschema_ns, anyURI}}.
 
 core_target() ->
     Props = dict:from_list([{immutable, false},
-			    {required, true},
-			    {default, undefined}]),
+                            {required, true},
+                            {default, undefined}]),
     #occi_attr{id='occi.core.target', properties=Props, type={?xmlschema_ns, anyURI}}.
