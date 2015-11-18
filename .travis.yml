@@ -1,0 +1,27 @@
+language: erlang
+otp_release:
+   - 18.0
+   - 18.1
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - build-essential
+      - libssl-dev
+      - libexpat1-dev
+
+install:
+  - "./bootstrap"
+  - "make"
+
+script:
+  - "make test"
+
+notifications:
+  email:
+    recipients:
+      - erocci-dev@ow2.org
+    on_success: change
+    on_failure: always
