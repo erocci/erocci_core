@@ -17,7 +17,7 @@ install:
   - "make"
 
 script:
-  - "make test"
+  - "make tests"
 
 notifications:
   email:

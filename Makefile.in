@@ -12,6 +12,4 @@ include erlang.mk
 
 fetch: $(ALL_DEPS_DIRS)
 
-test: eunit
-
 .PHONY: fetch test
