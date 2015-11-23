@@ -24,17 +24,17 @@
 -include("occi.hrl").
 
 -export([new/1,
-	 new/2,
-	 new/4,
-	 set_id/2,
-	 add_mixin/2,
-	 del_mixin/2,
-	 get_mixins/1,
-	 set_attr_value/3,
-	 has_category/2,
-	 match_attr/3]).
+         new/2,
+         new/4,
+         set_id/2,
+         add_mixin/2,
+         del_mixin/2,
+         get_mixins/1,
+         set_attr_value/3,
+         has_category/2,
+         match_attr/3]).
 -export([merge_attrs/2,
-	 rm_attrs/2]).
+         rm_attrs/2]).
 
 -type t() :: occi_resource() | occi_link().
 -export_type([t/0]).
@@ -42,34 +42,34 @@
 -spec new(occi_kind()) -> t().
 new(#occi_kind{}=Kind) ->
     case occi_kind:get_parent(Kind) of
-	?cid_resource ->
-	    occi_resource:new(Kind);
-	?cid_link ->
-	    occi_link:new(Kind)
+        ?cid_resource ->
+            occi_resource:new(Kind);
+        ?cid_link ->
+            occi_link:new(Kind)
     end.
 
 -spec new(uri(), occi_kind()) -> t().
 new(Id, #occi_kind{}=Kind) ->
     case occi_kind:get_parent(Kind) of
-	?cid_resource ->
-	    occi_resource:new(Id, Kind);
-	?cid_link ->
-	    occi_link:new(Id, Kind)
+        ?cid_resource ->
+            occi_resource:new(Id, Kind);
+        ?cid_link ->
+            occi_link:new(Id, Kind)
     end.
 
 -spec new(Id :: occi_uri:t(), KindId :: occi_cid:t(), MixinIds :: [occi_cid:t()], 
-	  Attrs :: [{occi_attribute:key(), occi_attribute:value()}]) -> t().
+          Attrs :: [{occi_attribute:key(), occi_attribute:value()}]) -> t().
 new(Id, KindId, MixinIds, Attrs) ->
     {ok, Kind} = occi_category_mgr:get(KindId),
     Mixins = lists:foldl(fun (MixinId, Acc) ->
-				 {ok, Mixin} = occi_category_mgr:get(MixinId),
-				 [ Mixin | Acc ]
-			 end, [], MixinIds),
+                                 {ok, Mixin} = occi_category_mgr:get(MixinId),
+                                 [ Mixin | Acc ]
+                         end, [], MixinIds),
     case occi_kind:parent(Kind) of
-	?cid_resource ->
-	    occi_resource:new(Id, Kind, Mixins, Attrs);
-	?cid_link ->
-	    occi_link:new(Id, Kind, Mixins, Attrs, undefined, undefined)
+        ?cid_resource ->
+            occi_resource:new(Id, Kind, Mixins, Attrs);
+        ?cid_link ->
+            occi_link:new(Id, Kind, Mixins, Attrs, undefined, undefined)
     end.
 
 
@@ -117,14 +117,14 @@ match_attr(#occi_link{}=Link, Name, Val) ->
 
 merge_attrs(#occi_kind{}=Kind, Attrs) ->
     orddict:merge(fun (_Key, _Val1, Val2) ->
-			  Val2
-		  end, Attrs, occi_kind:get_attributes(Kind));
+                          Val2
+                  end, Attrs, occi_kind:get_attributes(Kind));
 merge_attrs(#occi_mixin{}=Mixin, Attrs) ->
     orddict:merge(fun (_Key, _Val1, Val2) ->
-			  Val2
-		  end, Attrs, occi_mixin:get_attributes(Mixin)).
+                          Val2
+                  end, Attrs, occi_mixin:get_attributes(Mixin)).
 
 rm_attrs(#occi_mixin{attributes=MixinAttrs}, Attrs) ->
     lists:foldl(fun (Key, Acc) ->
-			orddict:erase(Key, Acc)
-		end, Attrs, orddict:fetch_keys(MixinAttrs)).
+                        orddict:erase(Key, Acc)
+                end, Attrs, orddict:fetch_keys(MixinAttrs)).
