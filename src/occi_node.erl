@@ -32,7 +32,9 @@
          set_type/2,
          get_parent/1,
          get_data/1,
+         data/1,
          set_data/2,
+         data/2,
          owner/1,
          add_prefix/2,
          rm_prefix/2]).
@@ -106,6 +108,10 @@ get_parent(#occi_node{id=Id}) ->
 get_data(#occi_node{data=Data}) ->
     Data.
 
+-spec data(occi_node()) -> term().
+data(#occi_node{data=Data}) ->
+    Data.
+
 -spec set_data(occi_node(), term()) -> occi_node().
 set_data(#occi_node{type=occi_resource}=Node, #occi_resource{}=Data) ->
     Node#occi_node{data=Data};
@@ -115,8 +121,15 @@ set_data(#occi_node{type=occi_mixin}=Node, #occi_mixin{}=Data) ->
     Node#occi_node{data=Data};
 set_data(#occi_node{type=occi_user_mixin}=Node, #occi_mixin{}=Data) ->
     Node#occi_node{data=Data};
+set_data(#occi_node{type=occi_entity}=Node, #occi_resource{}=Data) ->
+    Node#occi_node{type=occi_resource, data=Data};
+set_data(#occi_node{type=occi_entity}=Node, #occi_link{}=Data) ->
+    Node#occi_node{type=occi_link, data=Data};
 set_data(#occi_node{type=Type}, _) ->
     throw({invalid_data_type, Type}).
+
+data(Node, Data) ->
+    set_data(Node, Data).
 
 -spec owner(occi_node()) -> term().
 owner(#occi_node{owner=Owner}) ->
