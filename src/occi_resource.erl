@@ -143,13 +143,17 @@ del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res,
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
 set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
     set_id(Res, Val);
+set_attr_value(#occi_resource{}=Res, <<"occi.core.links">>, Val) when is_list(Val) ->
+    lists:foldl(fun (Link, Acc) ->
+                        add_link(Acc, occi_uri:parse(Link))
+                end, Res, Val);
 set_attr_value(#occi_resource{attributes=Attrs}=Res, Key, Val) when is_binary(Key); is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
         true ->
             Attr = orddict:fetch(Key, Attrs),
             Res#occi_resource{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
         false ->
-            {error, {undefined_attribute, Key}}
+            throw({undefined_attribute, Key})
     end.
 
 -spec update_attr_value(occi_resource(), term()) -> occi_resource().
