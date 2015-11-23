@@ -57,11 +57,17 @@ new(Id, #occi_kind{}=Kind) ->
             occi_link:new(Id, Kind)
     end.
 
--spec new(Id :: occi_uri:t(), KindId :: occi_cid:t(), MixinIds :: [occi_cid:t()], 
+-spec new(Id :: occi_uri:t(), KindId :: occi_cid:t() | binary(), MixinIds :: [occi_cid:t() | binary()], 
           Attrs :: [{occi_attribute:key(), occi_attribute:value()}]) -> t().
+new(Id, KindId, MixinIds, Attrs) when is_binary(KindId) ->
+    new(Id, occi_cid:parse(KindId), MixinIds, Attrs);
+
 new(Id, KindId, MixinIds, Attrs) ->
     {ok, Kind} = occi_category_mgr:get(KindId),
-    Mixins = lists:foldl(fun (MixinId, Acc) ->
+    Mixins = lists:foldl(fun (MixinId, Acc) when is_binary(MixinId) ->
+                                 {ok, Mixin} = occi_category_mgr:get(occi_cid:parse(MixinId)),
+                                 [ Mixin | Acc ];                                
+                             (MixinId, Acc) ->
                                  {ok, Mixin} = occi_category_mgr:get(MixinId),
                                  [ Mixin | Acc ]
                          end, [], MixinIds),
