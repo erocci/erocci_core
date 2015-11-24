@@ -138,7 +138,7 @@ render_attr_properties(#occi_attr{}=A) ->
     case L1 of
         [] -> [];
         L2 ->
-            [ <<"{">>, occi_renderer:join(L2, <<",">>), <<"}">>]
+            [ <<"{">>, occi_renderer:join(L2, <<" ">>), <<"}">>]
     end.
 
 render_action_specs(Actions) ->
