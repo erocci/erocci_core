@@ -190,7 +190,7 @@ build_attribute(#occi_attr{}=Attr, Env) ->
 
 build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}, Env) ->
     occi_renderer:join(
-      [render_kv(<<"term">>, Term, Env),
+      [Term,
        render_kv(<<"scheme">>, Scheme, Env),
        render_kv(<<"class">>, Cls, Env)], "; ").
 
