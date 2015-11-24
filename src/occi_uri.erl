@@ -28,25 +28,25 @@
 -endif.
 
 -export([new/3, 
-	 parse/1,
-	 gen_urn/2,
-	 gen_id/2,
-	 add_prefix/2,
-	 rm_prefix/2,
-	 get_parent/1,
-	 is_root/1,
-	 is_rel/1,
-	 to_url/2,
-	 to_iolist/2,
-	 to_iolist/1,
-	 to_binary/2,
-	 to_binary/1,
-	 to_string/2,
-	 to_string/1]).
+         parse/1,
+         gen_urn/2,
+         gen_id/2,
+         add_prefix/2,
+         rm_prefix/2,
+         get_parent/1,
+         is_root/1,
+         is_rel/1,
+         to_url/2,
+         to_iolist/2,
+         to_iolist/1,
+         to_binary/2,
+         to_binary/1,
+         to_string/2,
+         to_string/1]).
 
-% Wrappers to http_uri for treating with binaries
+                                                % Wrappers to http_uri for treating with binaries
 -export([encode/1,
-	 decode/1]).
+         decode/1]).
 
 -type t() :: uri().
 -export_type([t/0]).
@@ -73,13 +73,13 @@ parse(<<"/", Uri/bits>>) ->
 parse(Uri) when is_binary(Uri) ->
     Str = binary_to_list(Uri),
     case uri:parse(Str) of
-	{ok, {Scheme, UserInfo, Host, Port, Path, Query}} ->
-	    #uri{scheme=Scheme, userinfo=UserInfo, host=Host, port=Port, path=Path, query=Query};
+        {ok, {Scheme, UserInfo, Host, Port, Path, Query}} ->
+            #uri{scheme=Scheme, userinfo=UserInfo, host=Host, port=Port, path=Path, query=Query};
         {error, no_scheme} ->
-             #uri{path=Str};
+            #uri{path=Str};
         {error, Err} ->
-             throw({error, {Err, Uri}})
-     end.
+            throw({error, {Err, Uri}})
+    end.
 
 -spec gen_urn(Nid :: string(), Seed :: string()) -> uri().
 gen_urn(Nid, Seed) ->
@@ -97,8 +97,8 @@ gen_id(Prefix, Name) when is_list(Prefix) ->
 -spec is_rel(uri()) -> boolean().
 is_rel(#uri{path=Path}) ->
     case filename:pathtype(Path) of
-	relative -> true;	    
-	_ -> false
+        relative -> true;       
+        _ -> false
     end.
 
 is_root(#uri{path=[]}) ->
@@ -121,10 +121,10 @@ add_prefix(#uri{scheme=urn}=Uri, _) ->
 
 add_prefix(#uri{path=Path}=Uri, Prefix) ->
     case filename:split(Path) of
-	["/"|_P] ->
-	    Uri;
-	_ ->
-	    Uri#uri{path=filename:join(Prefix, Path)}
+        ["/"|_P] ->
+            Uri;
+        _ ->
+            Uri#uri{path=filename:join(Prefix, Path)}
     end.
 
 %%%
@@ -139,20 +139,20 @@ rm_prefix(#uri{scheme=urn}=Uri, _) ->
 
 rm_prefix(#uri{path=Path}=Uri, Prefix) -> 
     case substr(Prefix, Path) of
-	{ok, Path2} -> #uri{path=Path2};
-	none -> Uri
+        {ok, Path2} -> #uri{path=Path2};
+        none -> Uri
     end.
 
 get_parent(#uri{path=[]}) ->
-    % parent of an empty path
+                                                % parent of an empty path
     none;
 get_parent(#uri{path=Path}=Uri) ->
     case lists:reverse(filename:split(Path)) of
-	[_|[]] ->
-	    % root's parent
-	    Uri#uri{path=[]};
-	[_|Parent] ->
-	    Uri#uri{path=filename:join(lists:reverse(Parent))}
+        [_|[]] ->
+                                                % root's parent
+            Uri#uri{path=[]};
+        [_|Parent] ->
+            Uri#uri{path=filename:join(lists:reverse(Parent))}
     end.
 
 -spec to_url(Endpoint :: #uri{}, Uri :: #uri{}) -> #uri{}.
@@ -249,12 +249,12 @@ rm_prefix_tesst_() ->
      ?_assert(rm_prefix(Uri, "/what/a/prefix/") =:= #uri{path="path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/what/a/prefix//") =:= #uri{path="path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/other/prefix") =:= 
-		  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
+                  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/what/a/prefix") =:= 
-		  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
+                  #uri{scheme=http, host="example.com", port=99, path="/what/a/prefix/path/to/a/resource"}),
      ?_assert(rm_prefix(Uri, "/") =:= #uri{path="what/a/prefix/path/to/a/resource"}),
      ?_assert(rm_prefix(Uri2, "/a/long/prefix") =:= #uri{path="/resource"}),
      ?_assert(rm_prefix(Uri2, "/resource/") =:= #uri{path="/resource"})
     ].
-    
+
 -endif.
