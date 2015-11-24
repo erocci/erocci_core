@@ -196,7 +196,7 @@ update_attr_value(#occi_link{attributes=Attrs}=Link, List) ->
 -spec get_attr(occi_link(), occi_attr_key()) -> any().
 get_attr(#occi_link{id=Val}, 'occi.core.id') ->
     A = occi_attribute:core_id(),
-    A#occi_attr{id=Val};
+    A#occi_attr{value=Val};
 get_attr(#occi_link{source=Val}, 'occi.core.source') ->
     A = occi_attribute:core_src(),
     A#occi_attr{value=Val};

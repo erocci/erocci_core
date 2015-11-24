@@ -64,17 +64,17 @@ render_category(#occi_kind{}=Kind, Hdr, Env) ->
     L = [build_cid(occi_kind:get_id(Kind), Env),
          render_kv(<<"title">>, occi_kind:get_title(Kind), Env),
          render_kv(<<"rel">>, render_cid_uri(occi_kind:get_parent(Kind)), Env),
-         render_kv(<<"location">>, [occi_uri:to_iolist(occi_kind:get_location(Kind), Env),
+         render_kv(<<"location">>, [occi_uri:to_iolist(occi_kind:get_location(Kind))], Env),
          render_kv(<<"attributes">>, render_attr_specs(occi_kind:get_attributes(Kind)), Env),
-         render_kv(<<"actions">>, render_action_specs(occi_kind:get_actions(Kind)), Env)], Env)],
+         render_kv(<<"actions">>, render_action_specs(occi_kind:get_actions(Kind)), Env)],
     add_header_value(<<"category">>, occi_renderer:join(L, "; "), Hdr);
 
 render_category(#occi_mixin{}=Mixin, Hdr, Env) ->
     L = [build_cid(occi_mixin:get_id(Mixin), Env),
          render_kv(<<"title">>, occi_mixin:get_title(Mixin), Env),
-         render_kv(<<"location">>, [occi_uri:to_iolist(occi_mixin:get_location(Mixin), Env),
+         render_kv(<<"location">>, [occi_uri:to_iolist(occi_mixin:get_location(Mixin))], Env),
          render_kv(<<"attributes">>, render_attr_specs(occi_mixin:get_attributes(Mixin)), Env),
-         render_kv(<<"actions">>, render_action_specs(occi_mixin:get_actions(Mixin)), Env)], Env)],
+         render_kv(<<"actions">>, render_action_specs(occi_mixin:get_actions(Mixin)), Env)],
     add_header_value(<<"category">>, occi_renderer:join(L, "; "), Hdr);
 
 render_category(#occi_action{}=Action, Hdr, Env) ->
@@ -90,8 +90,9 @@ render_resource(Id, #occi_resource{}=Res, Acc, Env) ->
     Acc2 = render_cid(occi_resource:get_cid(Res), Acc, Env),
     Acc3 = sets:fold(fun(X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
                      Acc2, occi_resource:get_mixins(Res)),
+    Attrs = [ occi_resource:get_attr(Res, 'occi.core.id') | occi_resource:get_attributes(Res)],
     Acc4 = lists:foldl(fun(X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
-                       Acc3, occi_resource:get_attributes(Res)),
+                       Acc3, Attrs),
     Acc5 = lists:foldl(fun (X, IntAcc) -> render_inline_link(X, IntAcc, Env) end, 
                        Acc4, occi_resource:get_links(Res)),
     render_location(Id, Acc5, Env).
@@ -100,9 +101,11 @@ render_link(Id, #occi_link{}=Link, Acc, Env) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc, Env),
     Acc3 = sets:fold(fun (X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
                      Acc2, occi_link:get_mixins(Link)),
-    Attrs = [ occi_link:get_attr(Link, 'occi.core.source'), 
+    Attrs = [ occi_link:get_attr(Link, 'occi.core.id'),
+              occi_link:get_attr(Link, 'occi.core.source'), 
               occi_link:get_attr(Link, 'occi.core.target') 
               | occi_link:get_attributes(Link)],
+    ?debug("attrs: ~p", [Attrs]),
     Acc4 = lists:foldl(fun (X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
                        Acc3, Attrs),
     render_location(Id, Acc4, Env).
@@ -150,8 +153,6 @@ render_action_specs(Actions) ->
 render_action_spec(#occi_action{id=Id}) ->
     render_cid_uri(Id).
 
-render_attribute(#occi_attr{id='occi.core.id'}, Acc, _) ->
-    Acc;
 render_attribute(#occi_attr{}=Attr, Acc, Env) ->
     add_header_value(<<"x-occi-attribute">>, build_attribute(Attr, Env), Acc).
 
@@ -164,8 +165,10 @@ render_kv(_Key, [], _) ->
 render_kv(Key, Value, Env) ->
     [Key, "=", format_value(Value, Env)].
 
+format_value(#uri{}=V, _) ->
+    ["\"", occi_uri:to_iolist(V), "\""];
 format_value(V, _) when is_atom(V) ->
-	io_lib:format("~s", [V]);
+    io_lib:format("~s", [V]);
 format_value(V, _) when is_integer(V) ->
     io_lib:format("~b", [V]);
 format_value(V, _) when is_float(V) ->
@@ -201,6 +204,8 @@ add_header_value(Name, Value, Acc) ->
              end,
     orddict:store(Name, [Value | Values], Acc).
 
+to_list(#uri{}=V) ->
+    occi_uri:to_string(V);
 to_list(V) when is_atom(V) ->
     atom_to_list(V);
 to_list(V) when is_binary(V) ->
