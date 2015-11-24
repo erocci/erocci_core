@@ -108,7 +108,7 @@ render_link(Id, #occi_link{}=Link, Acc, Env) ->
     render_location(Id, Acc4, Env).
 
 render_inline_link(#uri{}=Uri, Acc, Env) ->
-    add_header_value(<<"link">>, occi_uri:to_iolist(Uri, Env), Acc);
+    add_header_value(<<"link">>, [$<, occi_uri:to_iolist(Uri, Env), $>], Acc);
 render_inline_link(#occi_link{id=LinkId}=Link, Acc, Env) ->
     add_header_value(<<"link">>, build_inline_link(LinkId, Link, Env), Acc).
 
