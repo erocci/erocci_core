@@ -64,17 +64,17 @@ render_category(#occi_kind{}=Kind, Hdr, Env) ->
     L = [build_cid(occi_kind:get_id(Kind), Env),
          render_kv(<<"title">>, occi_kind:get_title(Kind), Env),
          render_kv(<<"rel">>, render_cid_uri(occi_kind:get_parent(Kind)), Env),
+         render_kv(<<"location">>, [occi_uri:to_iolist(occi_kind:get_location(Kind), Env),
          render_kv(<<"attributes">>, render_attr_specs(occi_kind:get_attributes(Kind)), Env),
-         render_kv(<<"actions">>, render_action_specs(occi_kind:get_actions(Kind)), Env),
-         render_kv(<<"location">>, [occi_uri:to_iolist(occi_kind:get_location(Kind), Env)], Env)],
+         render_kv(<<"actions">>, render_action_specs(occi_kind:get_actions(Kind)), Env)], Env)],
     add_header_value(<<"category">>, occi_renderer:join(L, "; "), Hdr);
 
 render_category(#occi_mixin{}=Mixin, Hdr, Env) ->
     L = [build_cid(occi_mixin:get_id(Mixin), Env),
          render_kv(<<"title">>, occi_mixin:get_title(Mixin), Env),
+         render_kv(<<"location">>, [occi_uri:to_iolist(occi_mixin:get_location(Mixin), Env),
          render_kv(<<"attributes">>, render_attr_specs(occi_mixin:get_attributes(Mixin)), Env),
-         render_kv(<<"actions">>, render_action_specs(occi_mixin:get_actions(Mixin)), Env),
-         render_kv(<<"location">>, [occi_uri:to_iolist(occi_mixin:get_location(Mixin), Env)], Env)],
+         render_kv(<<"actions">>, render_action_specs(occi_mixin:get_actions(Mixin)), Env)], Env)],
     add_header_value(<<"category">>, occi_renderer:join(L, "; "), Hdr);
 
 render_category(#occi_action{}=Action, Hdr, Env) ->
