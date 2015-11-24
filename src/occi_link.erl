@@ -163,8 +163,14 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=M
                   attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
+set_attr_value(#occi_link{}=Link, <<"occi.core.title">>, Val) ->
+    set_attr_value(Link, 'occi.core.title', Val);
+set_attr_value(#occi_link{}=Link, <<"occi.core.source">>, Val) ->
+    set_source(Link, Val);
 set_attr_value(#occi_link{}=Link, 'occi.core.source', Val) ->
     set_source(Link, Val);
+set_attr_value(#occi_link{}=Link, <<"occi.core.target">>, Val) ->
+    set_target(Link, Val);
 set_attr_value(#occi_link{}=Link, 'occi.core.target', Val) ->
     set_target(Link, Val);
 set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_binary(Key); is_atom(Key) ->
