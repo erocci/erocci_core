@@ -162,18 +162,18 @@ render_kv(_Key, <<>>, _) ->
 render_kv(_Key, [], _) ->
     [];
 render_kv(Key, Value, Env) ->
-    [Key, "=\"", format_value(Value, Env), "\""].
+    [Key, "=", format_value(Value, Env)].
 
 format_value(V, _) when is_atom(V) ->
-    atom_to_list(V);
+	io_lib:format("~s", [V]);
 format_value(V, _) when is_integer(V) ->
-    integer_to_list(V);
+    io_lib:format("~b", [V]);
 format_value(V, _) when is_float(V) ->
     io_lib:format("~g", [V]);
 format_value(#uri{}=U, Env) ->
-    occi_uri:to_iolist(U, Env);
+    ["\"", occi_uri:to_iolist(U, Env), "\""];
 format_value(V, _) ->
-    V.
+    ["\"", io_lib:format("~s", [V]), "\""].
 
 build_inline_link(Id, #occi_link{}=Link, Env) ->
     L = [ [ "<", occi_uri:to_iolist(occi_link:get_target(Link), Env), ">" ],
