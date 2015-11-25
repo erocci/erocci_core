@@ -99,7 +99,7 @@ register({Ref, Mod, Opts, Path}) when is_atom(Ref), is_atom(Mod), is_binary(Path
         {error, {already_started, Pid}} ->
             {ok, Pid};
         {error, Err} ->
-			?error("Error starting backend: ~p", [Err]),
+            ?error("Error starting backend: ~p", [Err]),
             {error, Err}
     end.
 
@@ -117,10 +117,11 @@ save(#occi_node{id=#uri{path=Path}, owner=User}=Node, #occi_store_ctx{user=_User
                             case occi_backend:save(Ref, occi_node:rm_prefix(Node, Prefix)) of
                                 ok -> ok;
                                 {error, _Err} -> 
-									?debug("backend error: ~p", [_Err]),
+                                    ?debug("backend error: ~p", [_Err]),
                                     {error, 400}
                             end;
-                        {error, _Err} ->
+                        {error, Err} ->
+                            ?error("Error in backend: ~p", [Err]),
                             {error, 500}
                     end;
         deny -> {error, 403}
@@ -138,7 +139,7 @@ update(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixi
                         ok ->   occi_category_mgr:register_mixin(Mixin),
                                 ok;
                         {error, _Err} ->
-							?debug("backend error: ~p", [_Err]),
+                            ?debug("backend error: ~p", [_Err]),
                             {error, 400}
                     end;
                 {error, _Err} ->
@@ -159,7 +160,7 @@ update(#occi_node{id=#uri{path=Path}, owner=_User}=Node, #occi_store_ctx{user=Us
                         case occi_backend:update(Ref, occi_node:rm_prefix(Node, Prefix)) of
                             ok ->   ok;
                             {error, _Err} ->
-								?debug("backend error: ~p", [_Err]),
+                                ?debug("backend error: ~p", [_Err]),
                                 {error, 400}
                         end;
                     {error, _Err} ->
@@ -262,10 +263,10 @@ load(#occi_node{type=occi_collection, data=undefined}=Node, #occi_store_opts{nod
     case occi_acl:check(read, Node, User, AuthRef) of
         allow ->
             AuthFun = fun (N) ->
-                               case occi_acl:check(read, N, User, AuthRef) of
-                                   allow -> true;
-                                   deny -> false
-                               end
+                              case occi_acl:check(read, N, User, AuthRef) of
+                                  allow -> true;
+                                  deny -> false
+                              end
                       end,
             load_collection(Node, Opts#occi_store_opts{node_f=[AuthFun | NF]});
         deny -> {error, 403}
@@ -279,7 +280,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, anonymous) ->
                 {ok, Node2} ->
                     {ok, occi_node:add_prefix(Node2, Prefix)};
                 {error, _Err} ->
-					?debug("backend error: ~p", [_Err]),
+                    ?debug("backend error: ~p", [_Err]),
                     {error, 400}
             end;
         {error, _Err} ->
@@ -295,7 +296,7 @@ load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, #occi_store_ctx{
                             {ok, Node2} ->
                                 {ok, occi_node:add_prefix(Node2, Prefix)};
                             {error, _Err} ->
-								?debug("backend error: ~p", [_Err]),
+                                ?debug("backend error: ~p", [_Err]),
                                 {error, 400}
                         end;
                     {error, _Err} ->
@@ -322,11 +323,11 @@ action(#occi_node{type=occi_collection, data=undefined}=Node, A) ->
 action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #occi_action{}=A) ->
     ?debug("occi_store:action(~p, ~p)~n", [_N, A]),
     Reqs = ordsets:fold(fun (#uri{path=Path}=Uri, Acc) ->
-                                 case get_backend(Path) of
-                                     {error, Err} -> throw({error, Err});
-                                     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
-                                         [{Backend, [occi_uri:rm_prefix(Uri, Prefix), A]} | Acc]
-                                 end
+                                case get_backend(Path) of
+                                    {error, Err} -> throw({error, Err});
+                                    {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
+                                        [{Backend, [occi_uri:rm_prefix(Uri, Prefix), A]} | Acc]
+                                end
                         end, [], E),
     cast(action, Reqs);
 
@@ -346,7 +347,7 @@ init([]) ->
     ?TABLE = ets:new(?TABLE, [set, public, {keypos, 1}, named_table]),
     ets:insert(?TABLE, {tree, gb_trees:empty()}),
     ets:insert(?TABLE, {set, gb_sets:new()}),
-    % start no child, will be added with backends
+                                                % start no child, will be added with backends
     {ok, {{one_for_one, 10, 10}, []}}.
 
 %%%===================================================================
@@ -364,7 +365,7 @@ delete(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixi
                 ok ->   occi_category_mgr:unregister_mixin(Mixin),
                         ok;
                 {error, _Err} ->
-					?debug("backend error: ~p", [_Err]),
+                    ?debug("backend error: ~p", [_Err]),
                     {error, 400}
             end;
         {error, _Err} ->
@@ -391,8 +392,8 @@ delete(_Node) ->
 load_collection(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection, data=undefined}=Node, Opts) ->
     ?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
     Merge = fun (_B, #occi_node{data=undefined}, Acc) ->
-                     Acc;
-               (#occi_node{id=#uri{path=Prefix}}, #occi_node{data=C}, Acc) ->
+                    Acc;
+                (#occi_node{id=#uri{path=Prefix}}, #occi_node{data=C}, Acc) ->
                     occi_collection:merge(Acc, occi_collection:add_prefix(C, Prefix))
             end,
     case fold(Merge, occi_collection:new(Cid), load, [Node, Opts]) of
@@ -428,6 +429,7 @@ get_backend(Path) when is_list(Path) ->
     get_backend2(Path, T).
 
 get_backend2(Path, Tree) when is_list(Path) ->
+    ?debug("get_backend2(~p, ~p)", [Path, Tree]),
     case gb_trees:is_empty(Tree) of
         true ->
             {error, no_default_backend};
@@ -444,6 +446,8 @@ get_backend2(Path, Tree) when is_list(Path) ->
 -spec lookup_mountpoint(string(), [occi_node()]) -> {ok, occi_node()} | none.
 lookup_mountpoint(_Path, []) ->
     none;
+lookup_mountpoint(_Path, [#occi_node{id=#uri{path="/"}}=Node|_]) ->
+    {ok, Node};
 lookup_mountpoint(Path, [#occi_node{id=#uri{path=Mountpoint}}=Node|Tail]) ->
     case lists:prefix(Mountpoint, Path) of
         true -> {ok, Node};
@@ -471,7 +475,7 @@ insert_set(#occi_node{type=mountpoint}=Mp) ->
 
 fold(Merge, Acc0, Op, Req) ->
     Reqs = gb_sets:fold(fun (Backend, Acc) ->
-                                 [{Backend, Req}|Acc]
+                                [{Backend, Req}|Acc]
                         end, [], get_mounts()),
     cast(Merge, Acc0, Op, Reqs).
 
@@ -484,7 +488,7 @@ cast(Op, Reqs) ->
 
 cast(Merge, Acc0, Op, Reqs) ->
     Tags = lists:foldl(fun ({#occi_node{objid=Ref}=Backend, Req}, Acc) ->
-                                gb_trees:insert(occi_backend:cast(Ref, Op, Req), Backend, Acc)
+                               gb_trees:insert(occi_backend:cast(Ref, Op, Req), Backend, Acc)
                        end, gb_trees:empty(), Reqs),
     wait_response(Merge, Acc0, Tags).
 
@@ -521,8 +525,8 @@ wait_response(Merge, Acc, Tags) ->
             {error, {unexpected_message, _O}}
     after 
         occi_config:get(backend_timeout, 5000) ->
-        cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
-        {error, timeout}
+            cancel_response(gb_trees:next(gb_trees:iterator(Tags))),
+            {error, timeout}
     end.
 
 cancel_response(none) ->
@@ -537,18 +541,18 @@ cancel_response({Tag, #occi_node{objid=Ref}, It}) ->
 %%%
 filter_collection(#occi_node{type=occi_collection, data=#occi_collection{id=Cid, entities=E}}=Node) ->
     F = fun (#uri{path=Path}=Uri, Acc) ->
-                 case get_backend(Path) of
-                     {error, Err} -> throw({error, Err});
-                     {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
-                         case gb_trees:lookup(Backend, Acc) of
-                             none ->
-                                 C = occi_collection:new(Cid, [occi_uri:rm_prefix(Uri, Prefix)]),
-                                 gb_trees:insert(Backend, [Node#occi_node{data=C}], Acc);
-                             {value, [#occi_node{data=#occi_collection{}=C}]} ->
-                                 C2 = occi_collection:add_entity(C, occi_uri:rm_prefix(Uri, Prefix)),
-                                 gb_trees:update(Backend, [Node#occi_node{data=C2}], Acc)
-                         end
-                 end
+                case get_backend(Path) of
+                    {error, Err} -> throw({error, Err});
+                    {ok, #occi_node{id=#uri{path=Prefix}}=Backend} ->
+                        case gb_trees:lookup(Backend, Acc) of
+                            none ->
+                                C = occi_collection:new(Cid, [occi_uri:rm_prefix(Uri, Prefix)]),
+                                gb_trees:insert(Backend, [Node#occi_node{data=C}], Acc);
+                            {value, [#occi_node{data=#occi_collection{}=C}]} ->
+                                C2 = occi_collection:add_entity(C, occi_uri:rm_prefix(Uri, Prefix)),
+                                gb_trees:update(Backend, [Node#occi_node{data=C2}], Acc)
+                        end
+                end
         end,
     gb_trees:to_list(ordsets:fold(F, gb_trees:empty(), E)).
 
@@ -556,7 +560,7 @@ load_user_mixins(#occi_node{objid=Ref}) ->
     case occi_backend:find(Ref, #occi_node{id=#uri{path="/-/"}, type=capabilities, _='_'}) of
         {ok, [#occi_node{data={_, Mixins, _}}]} ->
             lists:foreach(fun (Mixin) -> 
-                                   occi_category_mgr:register_mixin(Mixin)
+                                  occi_category_mgr:register_mixin(Mixin)
                           end, Mixins);
         {error, Err} ->
             {error, Err}

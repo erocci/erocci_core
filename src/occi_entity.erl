@@ -32,7 +32,8 @@
          get_mixins/1,
          set_attr_value/3,
          has_category/2,
-         match_attr/3]).
+         match_attr/3,
+         reset/1]).
 -export([merge_attrs/2,
          rm_attrs/2]).
 
@@ -120,6 +121,14 @@ match_attr(#occi_resource{}=Res, Name, Val) ->
     occi_resource:match_attr(Res, Name, Val);
 match_attr(#occi_link{}=Link, Name, Val) ->
     occi_link:has_category(Link, Name, Val).
+
+
+-spec reset(occi_entity()) -> occi_entity().
+reset(#occi_resource{}=E) ->
+    occi_resource:reset(E);
+reset(#occi_link{}=E) ->
+    occi_link:reset(E).
+
 
 merge_attrs(#occi_kind{}=Kind, Attrs) ->
     orddict:merge(fun (_Key, _Val1, Val2) ->
