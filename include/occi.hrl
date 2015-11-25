@@ -18,12 +18,12 @@
 -define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
 
 -type occi_schema() :: XmlExt :: binary()
-		     | occi_mixin()
-		     | [{path, Path :: string()}].
+                               | occi_mixin()
+                               | [{path, Path :: string()}].
 
 -type occi_backend_capability() :: {schemas, [occi_schema()]}
-          | pagination
-          | deep.
+                                 | pagination
+                                 | deep.
 
 -record(occi_env, {req_uri, req}).
 -type occi_env() :: #occi_env{}.
@@ -49,10 +49,10 @@
 
 -type(occi_node_id() :: uri()).
 -type(occi_node_type() :: mountpoint |
-          capabilities |
-          occi_resource | 
-          occi_link |
-          occi_collection).
+                          capabilities |
+                          occi_resource | 
+                          occi_link |
+                          occi_collection).
 -record(occi_node, {id                     :: occi_node_id(),
                     objid     = undefined  :: occi_objid(),
                     type      = undefined  :: occi_node_type(),
