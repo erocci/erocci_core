@@ -26,7 +26,7 @@
 -include("occi_parser.hrl").
 
 -export([send_event/3,
-	 parse_error/2]).
+         parse_error/2]).
 
 parse_error(#token{}=Token, Ctx) ->
     ?error(build_err(Token)),
@@ -45,31 +45,31 @@ send_event(_Event, IfOk, #parser{sink=undefined}) ->
     IfOk;
 send_event(Event, IfOk, #parser{sink=Sink}=Ctx) ->
     Res = case Event of
-	      eof ->
-		  stop_parser(Sink);
-	      Else ->
-		  gen_fsm:sync_send_event(Sink#parser.id, Else)
-	  end,
+              eof ->
+                  stop_parser(Sink);
+              Else ->
+                  gen_fsm:sync_send_event(Sink#parser.id, Else)
+          end,
     case Res of
-	ok ->
-	    IfOk;
-	{eof, Result} ->
-	    stop_parser(Sink),
-	    {reply, {eof, Result}, eof, Ctx};
-	{error, Reason} ->
-	    stop_parser(Sink),
-	    {reply, {error, Reason}, eof, Ctx}
+        ok ->
+            IfOk;
+        {eof, Result} ->
+            stop_parser(Sink),
+            {reply, {eof, Result}, eof, Ctx};
+        {error, Reason} ->
+            stop_parser(Sink),
+            {reply, {error, Reason}, eof, Ctx}
     end.
 
 stop_parser(#parser{id=Ref}) ->
     try gen_fsm:sync_send_all_state_event(Ref, stop) of
-	ok ->
-	    ok
+        ok ->
+            ok
     catch
-	exit:{normal, _} ->
-	    ok;
-	exit:{noproc, _} ->
-	    ok;
-	_:Err ->
-	    {error, Err}
+        exit:{normal, _} ->
+            ok;
+        exit:{noproc, _} ->
+            ok;
+        _:Err ->
+            {error, Err}
     end.
