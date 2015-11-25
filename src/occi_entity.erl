@@ -26,7 +26,9 @@
 -export([new/1,
          new/2,
          new/4,
+         id/1,
          set_id/2,
+         id/2,
          add_mixin/2,
          del_mixin/2,
          get_mixins/1,
@@ -79,12 +81,20 @@ new(Id, KindId, MixinIds, Attrs) ->
             occi_link:new(Id, Kind, Mixins, Attrs, undefined, undefined)
     end.
 
+-spec id(occi_resource() | occi_link()) -> uri().
+id(#occi_resource{}=R) ->
+    occi_resource:id(R);
+id(#occi_link{}=L) ->
+    occi_link:id(L).
 
 -spec set_id(occi_resource() | occi_link(), uri()) -> t().
 set_id(#occi_resource{}=R, Id) ->
     occi_resource:set_attr_value(R, 'occi.core.id', Id);
 set_id(#occi_link{}=L, Id) ->
     occi_link:set_attr_value(L, 'occi.core.id', Id).
+
+id(Res, Id) ->
+    set_id(Res, Id).
 
 -spec add_mixin(occi_resource() | occi_link(), occi_mixin()) -> occi_resource() | occi_link().
 add_mixin(#occi_resource{}=Res, Mixin) ->
