@@ -173,7 +173,7 @@ parse_hd_value(<< $\n, Rest/bits >>, Headers, Name, SoFar) ->
 parse_hd_value(<< C, Rest/bits >>, H, N, SoFar) ->
     parse_hd_value(Rest, H, N, << SoFar/binary, C >>);
 parse_hd_value(<<>>, _H, _N, _SoFar) ->
-    {error, eof}.
+    {error, {parse_error, eof}}.
 
 add_header_value(Name, Value, Acc) when is_binary(Name) ->
     add_header_value(?hdr_to_atom(Name), Value, Acc);
