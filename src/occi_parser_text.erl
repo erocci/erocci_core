@@ -219,6 +219,11 @@ parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) 
         C == Cls -> parse_c_kv(parse_kv(Rest), Cid, V, H, S);
         true -> {error, invalid_class}
     end;
+parse_c_kv({ok, title, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=occi_mixin:set_title(M, Bin)});
+parse_c_kv({ok, title, {string, _Bin}, Rest}, Cid, V, H, S) ->
+	% Ignore: title won't be check 
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({error, Err}, _, _, _, _) ->
     {error, Err};
 parse_c_kv(none, Cid, [], H, #state{action=#occi_action{}}=S) ->
