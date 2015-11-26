@@ -193,8 +193,8 @@ build_attribute(#occi_attr{}=Attr, Env) ->
 build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}, Env) ->
     occi_renderer:join(
       [to_list(Term),
-       render_kv(<<"scheme">>, Scheme, Env),
-       render_kv(<<"class">>, Cls, Env)], "; ").
+       render_kv(<<"scheme">>, to_list(Scheme), Env),
+       render_kv(<<"class">>, to_list(Cls), Env)], "; ").
 
 add_header_value(Name, Value, Acc) ->
                                                 %check_iolist(Value),
