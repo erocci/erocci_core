@@ -180,6 +180,9 @@ code_change(_OldVsn, State, _Extra) ->
 setup(Props) ->
     P2 = opt_categories_map(Props),
     P3 = opt_categories_prefix(P2),
+	Core = filename:join([code:priv_dir(erocci_core), "schemas", "occi-core.xml"]),
+	?info("Loading core schema from ~p", [Core]),
+	occi_category_mgr:load_schema(undefined, {path, Core}),
     P4 = opt_backends(P3),
     P5 = opt_listeners(P4),
     P6 = opt_backend_timeout(P5),

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<occi:extension xmlns:occi="http://schemas.ogf.org/occi"
+		xmlns:xs="http://www.w3.org/2001/XMLSchema"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://schemas.ogf.org/occi occi.xsd " name="Core"
+		status="stable" version="1">
+
+  <occi:kind term="entity" scheme="http://schemas.ogf.org/occi/core#" title="Core Entity">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="root" />
+    <occi:attribute name="occi.core.id" type="xs:string" title="Id" />
+    <occi:attribute name="occi.core.title" type="xs:string" title="Display name" />
+  </occi:kind>
+
+  <occi:kind term="resource" scheme="http://schemas.ogf.org/occi/core#" title="Core Resource">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="entity" />
+    <occi:attribute name="occi.core.summary" type="xs:summary" title="Summarising description" />
+  </occi:kind>
+
+
+  <occi:kind term="link" scheme="http://schemas.ogf.org/occi/core#" title="Core Link">
+    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="entity" />
+  </occi:kind>  
+</occi:extension>
