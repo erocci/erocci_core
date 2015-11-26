@@ -105,7 +105,6 @@ render_link(Id, #occi_link{}=Link, Acc, Env) ->
               occi_link:get_attr(Link, 'occi.core.source'), 
               occi_link:get_attr(Link, 'occi.core.target') 
               | occi_link:get_attributes(Link)],
-    ?debug("attrs: ~p", [Attrs]),
     Acc4 = lists:foldl(fun (X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
                        Acc3, Attrs),
     render_location(Id, Acc4, Env).
@@ -193,11 +192,12 @@ build_attribute(#occi_attr{}=Attr, Env) ->
 
 build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}, Env) ->
     occi_renderer:join(
-      [Term,
+      [to_list(Term),
        render_kv(<<"scheme">>, Scheme, Env),
        render_kv(<<"class">>, Cls, Env)], "; ").
 
 add_header_value(Name, Value, Acc) ->
+                                                %check_iolist(Value),
     Values = case orddict:find(Name, Acc) of
                  {ok, V} -> V;
                  error -> []
@@ -206,7 +206,21 @@ add_header_value(Name, Value, Acc) ->
 
 to_list(#uri{}=V) ->
     occi_uri:to_string(V);
+to_list(V) when is_list(V) ->
+    V;
 to_list(V) when is_atom(V) ->
     atom_to_list(V);
 to_list(V) when is_binary(V) ->
     binary_to_list(V).
+
+%% check_iolist([]) ->
+%%  ok;
+%% check_iolist([ H | T ]) when is_list(H) ->
+%%  check_iolist(H),
+%%  check_iolist(T);
+%% check_iolist([ H | T ]) when is_binary(H) ->
+%%  check_iolist(T);
+%% check_iolist([ H | T ]) when is_integer(H) ->
+%%  check_iolist(T);
+%% check_iolist([ H | T]) ->
+%%  throw({invalid_iolist, H, T}).
