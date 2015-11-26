@@ -429,7 +429,6 @@ get_backend(Path) when is_list(Path) ->
     get_backend2(Path, T).
 
 get_backend2(Path, Tree) when is_list(Path) ->
-    ?debug("get_backend2(~p, ~p)", [Path, Tree]),
     case gb_trees:is_empty(Tree) of
         true ->
             {error, no_default_backend};
