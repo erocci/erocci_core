@@ -417,7 +417,7 @@ parse_number(<< C, Rest/bits >>, SoFar, K) ->
         $7 -> parse_number(<< Rest/binary >>, << SoFar/binary, $7 >>, K);
         $8 -> parse_number(<< Rest/binary >>, << SoFar/binary, $8 >>, K);
         $9 -> parse_number(<< Rest/binary >>, << SoFar/binary, $9 >>, K);
-        $. -> parse_float(<< Rest/binary >>, << $. >>, K);
+        $. -> parse_float(<< Rest/binary >>, << SoFar/binary, $. >>, K);
         $; ->
             {ok, K, {integer, binary_to_integer(SoFar)}, Rest};
         $\s -> 
