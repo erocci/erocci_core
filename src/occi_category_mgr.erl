@@ -161,7 +161,7 @@ hash1(#occi_cid{term=Term}=Cid, Prefix, 0) ->
     case find(U) of
         [] -> U;
         _ ->
-                                                % Conflict !
+            % Conflict !
             hash1(Cid, Prefix, 1)
     end;
 hash1(#occi_cid{term=Term}=Cid, Prefix, I) ->
@@ -169,7 +169,7 @@ hash1(#occi_cid{term=Term}=Cid, Prefix, I) ->
     case find(U) of
         [] -> U;
         _ ->
-                                                % Conflict !
+            % Conflict !
             hash1(Cid, Prefix, I+1)
     end.    
 
