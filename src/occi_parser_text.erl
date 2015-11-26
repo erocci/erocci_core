@@ -209,6 +209,9 @@ parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mi
             parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=occi_mixin:set_location(M, Uri)})
     catch throw:Err -> {error, Err}
     end;
+parse_c_kv({ok, location, {string, _Bin}, Rest}, Cid, V, H, S) ->
+	% Ignore location
+	parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, scheme, {string, Bin}, Rest}, Cid, V, H, S) ->
     parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=?scheme_to_atom(Bin)}, V, H, S);
 parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=undefined}=Cid, V, H, S) ->
