@@ -84,7 +84,7 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
     Attrs = [?CORE_ATTRS,
              orddict:to_list(occi_kind:get_attributes(Kind)),
              lists:map(fun (Mixin) ->
-                               orddict:to_list(occi_kind:get_attributes(Mixin))
+                               orddict:to_list(occi_mixin:get_attributes(Mixin))
                        end, Mixins)],
     L = set_id(#occi_link{cid=occi_kind:get_id(Kind), 
 						  attributes=orddict:from_list(lists:flatten(Attrs)),
