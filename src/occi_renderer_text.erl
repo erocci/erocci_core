@@ -152,8 +152,11 @@ render_action_specs(Actions) ->
 render_action_spec(#occi_action{id=Id}) ->
     render_cid_uri(Id).
 
+render_attribute(#occi_attr{value=undefined}, Acc, _Env) ->
+    Acc;
 render_attribute(#occi_attr{}=Attr, Acc, Env) ->
-    add_header_value(<<"x-occi-attribute">>, build_attribute(Attr, Env), Acc).
+    Bin = build_attribute(Attr, Env),
+    add_header_value(<<"x-occi-attribute">>, Bin, Acc).
 
 render_kv(_Key, undefined, _) ->
     [];
