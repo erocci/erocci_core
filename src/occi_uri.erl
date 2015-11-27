@@ -101,6 +101,7 @@ is_rel(#uri{path=Path}) ->
         _ -> false
     end.
 
+
 is_root(#uri{path=[]}) ->
     true;
 is_root(#uri{path="/"}) ->

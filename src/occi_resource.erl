@@ -68,9 +68,9 @@ new(#occi_kind{}=Kind) ->
                    attributes=orddict:from_list(lists:flatten(Attrs)),
                    links=sets:new()};
 new(Id) ->
-    #occi_resource{id=Id, 
-                   attributes=orddict:from_list(?CORE_ATTRS), 
-                   links=sets:new()}.
+    set_id(#occi_resource{
+			  attributes=orddict:from_list(?CORE_ATTRS), 
+			  links=sets:new()}, Id).
 
 -spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_resource().
 new(Id, #occi_kind{}=Kind) ->
@@ -90,9 +90,9 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes) ->
              lists:map(fun (Mixin) ->
                                orddict:to_list(occi_kind:get_attributes(Mixin))
                        end, Mixins)],
-    R = #occi_resource{id=Id, cid=occi_kind:get_id(Kind), 
-                       attributes=orddict:from_list(lists:flatten(Attrs)),
-                       links=sets:new()},
+    R = set_id(#occi_resource{cid=occi_kind:get_id(Kind), 
+							  attributes=orddict:from_list(lists:flatten(Attrs)),
+							  links=sets:new()}, Id),
     lists:foldl(fun ({Key, Value}, Acc) ->
                         occi_resource:set_attr_value(Acc, Key, Value)
                 end, R, Attributes).
@@ -105,8 +105,13 @@ id(#occi_resource{id=Id}) ->
     Id.
 
 -spec set_id(occi_resource(), occi_objid() | binary()) -> occi_resource().
-set_id(#occi_resource{}=Res, Id) ->
-    Res#occi_resource{id=Id}.
+set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
+	set_id(Res, occi_uri:parse(Id));
+set_id(#occi_resource{id=undefined}=Res, #uri{}=Id) -> 
+    Res#occi_resource{id=Id};
+set_id(#occi_resource{id=#uri{}}=Res, _) ->
+	Res.
+
 
 -spec get_cid(occi_resource()) -> occi_cid().
 get_cid(#occi_resource{cid=Cid}) ->

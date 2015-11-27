@@ -66,8 +66,8 @@ new() ->
 new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
              ?CORE_ATTRS],
-    #occi_link{id=Id, cid=occi_kind:get_id(Kind), 
-               attributes=orddict:from_list(lists:flatten(Attrs))}.
+    set_id(#occi_link{cid=occi_kind:get_id(Kind), 
+					  attributes=orddict:from_list(lists:flatten(Attrs))}, Id).
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
@@ -77,7 +77,7 @@ new(#occi_kind{}=Kind) ->
                attributes=orddict:from_list(lists:flatten(Attrs))};
 
 new(Id) ->
-    #occi_link{id=Id, attributes=orddict:from_list(?CORE_ATTRS)}.
+    set_id(#occi_link{attributes=orddict:from_list(?CORE_ATTRS)}, Id).
 
 -spec new(occi_objid(), occi_kind(), [occi_mixin()], [{atom(), term}], uri(), uri()) -> occi_link().
 new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
@@ -86,11 +86,10 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
              lists:map(fun (Mixin) ->
                                orddict:to_list(occi_kind:get_attributes(Mixin))
                        end, Mixins)],
-    L = #occi_link{id=Id,
-                   cid=occi_kind:get_id(Kind), 
-                   attributes=orddict:from_list(lists:flatten(Attrs)),
-                   source=Source,
-                   target=Target},
+    L = set_id(#occi_link{cid=occi_kind:get_id(Kind), 
+						  attributes=orddict:from_list(lists:flatten(Attrs)),
+						  source=Source,
+						  target=Target}, Id),
     lists:foldl(fun ({Key, Value}, Acc) ->
                         occi_link:set_attr_value(Acc, Key, Value)
                 end, L, Attributes).
@@ -103,8 +102,12 @@ id(#occi_link{id=Id}) ->
     Id.
 
 -spec set_id(occi_link(), occi_objid()) -> occi_link().
-set_id(#occi_link{}=L, Id) ->
-    L#occi_link{id=Id}.
+set_id(#occi_link{}=L, Id) when is_binary(Id) ->
+	set_id(L, occi_uri:parse(Id));
+set_id(#occi_link{id=undefined}=L, #uri{}=Id) -> 
+    L#occi_link{id=Id};
+set_id(#occi_link{id=#uri{}}=L, _) ->
+	L.
 
 -spec get_source(occi_link()) -> uri().
 get_source(#occi_link{source=Src}) ->
@@ -163,8 +166,16 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=M
                   attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-set_attr_value(#occi_link{}=Link, 'occi.core.id', Val) ->
+set_attr_value(#occi_link{id=undefined}=Link, 'occi.core.id', Val) ->
     set_id(Link, Val);
+set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', Val) ->
+	?debug("set_attr_value(~s, 'occi.core.id', ~s", [Path, Val]),
+    case occi_uri:parse(Val) of
+        #uri{path=Path} ->
+            Link;
+        _ ->
+            throw({id_conflict, Path, Val})
+    end;
 set_attr_value(#occi_link{}=Link, <<"occi.core.title">>, Val) ->
     set_attr_value(Link, 'occi.core.title', Val);
 set_attr_value(#occi_link{}=Link, <<"occi.core.source">>, Val) ->
