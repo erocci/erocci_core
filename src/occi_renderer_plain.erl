@@ -46,7 +46,7 @@ render_headers(Headers, #occi_env{req=Req}=Env) ->
 	lists:foldl(fun (Name, Acc) ->
 			    dispatch_headers(Name, Acc, Headers)
 		    end, {[], Req}, lists:reverse(orddict:fetch_keys(Headers))),
-    {[ occi_renderer:join(BodyHdr, "\n") | "\n"], Env#occi_env{req=Req2}}.
+    {[ occi_renderer:join(BodyHdr, "\n") ], Env#occi_env{req=Req2}}.
 
 %%
 %% Private
