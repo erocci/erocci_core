@@ -31,12 +31,12 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-render(#occi_node{id=Id, type=occi_resource, data=Res}, Env, Renderer) ->
-    Headers = render_resource(Id, Res, orddict:new(), Env),
+render(#occi_node{id=Id, data=#occi_resource{}=Entity}, Env, Renderer) ->
+    Headers = render_resource(Id, Entity, orddict:new(), Env),
     Renderer(Headers, Env);
 
-render(#occi_node{id=Id, type=occi_link, data=Link}, Env, Renderer) ->
-    Headers = render_link(Id, Link, orddict:new(), Env),
+render(#occi_node{id=Id, data=#occi_link{}=Entity}, Env, Renderer) ->
+    Headers = render_link(Id, Entity, orddict:new(), Env),
     Renderer(Headers, Env);
 
 render(#occi_node{type=capabilities, data={Kinds, Mixins, Actions}}, Env, Renderer) ->

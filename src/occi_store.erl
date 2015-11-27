@@ -49,7 +49,7 @@
          find/1,
          load/1,
          load/3,
-         action/2]).
+         action/3]).
 
 %% supervisor callbacks
 -export([init/1]).
@@ -309,18 +309,18 @@ load(#occi_node{data=_}=Node, Opts, _User) ->
     ?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
     {ok, Node}.
 
-action(#occi_node{type=capabilities}=_N, _A) ->
+action(#occi_node{type=capabilities}=_N, _A, _Ctx) ->
     ?debug("occi_store:action(~p, ~p)~n", [_N, _A]),
     {error, unsupported_node};
 
-action(#occi_node{type=occi_collection, data=undefined}=Node, A) ->
+action(#occi_node{type=occi_collection, data=undefined}=Node, A, Ctx) ->
     ?debug("occi_store:action(~p, ~p)~n", [Node, A]),
-    case load(Node) of
-        {ok, N2} -> action(N2, A);
+    case load(Node, [], Ctx) of
+        {ok, N2} -> action(N2, A, Ctx);
         {error, Err} -> {error, Err}
     end;
 
-action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #occi_action{}=A) ->
+action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #occi_action{}=A, _Ctx) ->
     ?debug("occi_store:action(~p, ~p)~n", [_N, A]),
     Reqs = ordsets:fold(fun (#uri{path=Path}=Uri, Acc) ->
                                 case get_backend(Path) of
@@ -331,12 +331,16 @@ action(#occi_node{type=occi_collection, data=#occi_collection{entities=E}}=_N, #
                         end, [], E),
     cast(action, Reqs);
 
-action(#occi_node{id=#uri{path=Path}=Id}=_N, #occi_action{}=A) ->
-    ?debug("occi_store:action(~p, ~p)~n", [_N, A]),
+action(#occi_node{id=#uri{path=Path}=Id}=N, #occi_action{}=A, Ctx) ->
+    ?debug("occi_store:action(~p, ~p)~n", [N, A]),
     case get_backend(Path) of
         {error, Err} -> throw({error, Err});
         {ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-            occi_backend:action(Ref, occi_uri:rm_prefix(Id, Prefix), A)
+            case occi_backend:action(Ref, occi_uri:rm_prefix(Id, Prefix), A) of
+                ok -> 
+                    load(N, [], Ctx);
+                {error, _}=Err -> Err
+            end
     end.
 
 %%%===================================================================
