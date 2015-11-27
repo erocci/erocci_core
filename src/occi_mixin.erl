@@ -25,37 +25,37 @@
 
 %% API
 -export([new/0,
-	 new/1,
-	 new/2, 
-	 get_id/1,
-	 id/1,
-	 get_class/1,
-	 get_scheme/1,
-	 set_scheme/2,
-	 get_term/1,
-	 set_term/2,
-	 get_title/1,
-	 set_title/2,
-	 get_location/1,
-	 set_location/2,
-	 add_attribute/2,
-	 get_attributes/1,
-	 get_attr_list/1,
-	 get_actions/1,
-	 add_action/2,
-	 get_applies/1,
-	 add_applies/2,
-	 get_depends/1,
-	 add_depends/2,
-	 is_user/1,
-	 is_valid/1,
-	 add_prefix/2,
-	 rm_prefix/2]).
+         new/1,
+         new/2, 
+         get_id/1,
+         id/1,
+         get_class/1,
+         get_scheme/1,
+         set_scheme/2,
+         get_term/1,
+         set_term/2,
+         get_title/1,
+         set_title/2,
+         get_location/1,
+         set_location/2,
+         add_attribute/2,
+         get_attributes/1,
+         get_attr_list/1,
+         get_actions/1,
+         add_action/2,
+         get_applies/1,
+         add_applies/2,
+         get_depends/1,
+         add_depends/2,
+         is_user/1,
+         is_valid/1,
+         add_prefix/2,
+         rm_prefix/2]).
 
 new() ->
     #occi_mixin{id=#occi_cid{class=mixin},
-		actions=orddict:new(),
-		attributes=orddict:new()}.
+                actions=orddict:new(),
+                attributes=orddict:new()}.
 
 new(#occi_cid{}=Id, #uri{}=Location) ->
     #occi_mixin{id=Id, attributes=orddict:new(), actions=orddict:new(), location=Location};
@@ -93,7 +93,7 @@ get_title(#occi_mixin{title=Title}) ->
     Title.
 
 set_title(#occi_mixin{}=Mixin, Title) when is_binary(Title); 
-					   Title =:= undefined ->
+                                           Title =:= undefined ->
     Mixin#occi_mixin{title=Title}.
 
 get_location(#occi_mixin{location=Uri}) -> 
@@ -112,13 +112,13 @@ get_attributes(#occi_mixin{attributes=Attrs}) ->
 
 get_attr_list(#occi_mixin{attributes=Attrs}) ->
     orddict:fold(fun (_Key, Value, Acc) ->
-			 [Value|Acc]
-		 end, [], Attrs).
+                         [Value|Acc]
+                 end, [], Attrs).
 
 get_actions(#occi_mixin{actions=Actions}) ->
     orddict:fold(fun (_Key, Action, Acc) ->
-			 [Action | Acc]
-		 end, [], Actions).
+                         [Action | Acc]
+                 end, [], Actions).
 
 add_action(#occi_mixin{actions=Actions}=Mixin, Action) ->
     Mixin#occi_mixin{actions=orddict:store(occi_action:get_id(Action), Action, Actions)}.
