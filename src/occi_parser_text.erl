@@ -203,6 +203,13 @@ parse_c_term(<< C, Rest/bits >>, V, H, S, SoFar) ->
 parse_c_term(_, _, _, _, _) ->
     {error, invalid_category}.
 
+parse_c_kv({ok, rel, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
+	try occi_cid:parse(Bin) of
+		#occi_cid{}=Dep ->
+			Mixin2 = occi_mixin:add_depends(M, Dep),
+			parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=Mixin2})
+    catch throw:Err -> {error, Err}
+    end;
 parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
     try occi_uri:parse(Bin) of
         #uri{}=Uri ->
