@@ -175,8 +175,13 @@ to_iolist(#uri{scheme='xmpp+occi', userinfo=U, host=H, path=P, 'query'=Q}) ->
     ["xmpp+occi:", U, "@", H, P, Q];
 to_iolist(#uri{scheme=urn, path=Path}) ->
     ["urn:", Path];
-to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, path=Path, query=Query}) ->
-    uri:to_iolist({Scheme, Auth, Host, Port, Path, Query}).
+to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, 
+			   path=[$/ | Path], query=Query}) ->
+    uri:to_iolist({Scheme, Auth, Host, Port, [$/ | Path], Query});
+to_iolist(#uri{scheme=Scheme, userinfo=Auth, host=Host, port=Port, 
+			   path=Path, query=Query}) ->
+    uri:to_iolist({Scheme, Auth, Host, Port, [$/ | Path], Query}).
+
 
 to_binary(Uri, #occi_env{req_uri=#uri{}=Host}) ->
     to_binary(to_url(Host, Uri)).
