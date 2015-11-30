@@ -54,7 +54,7 @@ render_headers(Headers, #occi_env{req=Req}=Env) ->
 dispatch_headers(<<"location">>, {BodyAcc, ReqAcc}, Headers) ->
     Value = occi_renderer:join(orddict:fetch(<<"location">>, Headers), ", "),
     ReqAcc2 = cowboy_req:set_resp_header(<<"location">>, Value, ReqAcc),
-    {BodyAcc, ReqAcc2};
+    {[ render_header(<<"location">>, orddict:fetch(<<"location">>, Headers)) | BodyAcc ], ReqAcc2};
 
 dispatch_headers(Name, {BodyAcc, ReqAcc}, Headers) -> 
     {[ render_header(Name, orddict:fetch(Name, Headers)) | BodyAcc ], ReqAcc}.
