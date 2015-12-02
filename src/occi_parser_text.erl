@@ -204,12 +204,15 @@ parse_c_term(_, _, _, _, _) ->
     {error, invalid_category}.
 
 parse_c_kv({ok, rel, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
-	try occi_cid:parse(Bin) of
-		#occi_cid{}=Dep ->
-			Mixin2 = occi_mixin:add_depends(M, Dep),
-			parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=Mixin2})
+    try occi_cid:parse(Bin) of
+        #occi_cid{}=Dep ->
+            Mixin2 = occi_mixin:add_depends(M, Dep),
+            parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=Mixin2})
     catch throw:Err -> {error, Err}
     end;
+parse_c_kv({ok, rel, {string, _Bin}, Rest}, Cid, V, H, S) ->
+    % Ignore rel for other type of requests
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
     try occi_uri:parse(Bin) of
         #uri{}=Uri ->
@@ -217,8 +220,8 @@ parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mi
     catch throw:Err -> {error, Err}
     end;
 parse_c_kv({ok, location, {string, _Bin}, Rest}, Cid, V, H, S) ->
-	% Ignore location
-	parse_c_kv(parse_kv(Rest), Cid, V, H, S);
+    % Ignore location
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, scheme, {string, Bin}, Rest}, Cid, V, H, S) ->
     parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=?scheme_to_atom(Bin)}, V, H, S);
 parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=undefined}=Cid, V, H, S) ->
@@ -232,7 +235,13 @@ parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) 
 parse_c_kv({ok, title, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
     parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=occi_mixin:set_title(M, Bin)});
 parse_c_kv({ok, title, {string, _Bin}, Rest}, Cid, V, H, S) ->
-	% Ignore: title won't be check 
+    % Ignore: title won't be check 
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
+parse_c_kv({ok, actions, {string, _Bin}, Rest}, Cid, V, H, S) ->
+    % Ignore: actions won't be check 
+    parse_c_kv(parse_kv(Rest), Cid, V, H, S);
+parse_c_kv({ok, attributes, {string, _Bin}, Rest}, Cid, V, H, S) ->
+    % Ignore: attributes won't be check 
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({error, Err}, _, _, _, _) ->
     {error, Err};
