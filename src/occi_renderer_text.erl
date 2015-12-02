@@ -70,8 +70,11 @@ render_category(#occi_kind{}=Kind, Hdr, Env) ->
     add_header_value(<<"category">>, occi_renderer:join(L, "; "), Hdr);
 
 render_category(#occi_mixin{}=Mixin, Hdr, Env) ->
+    Applies = occi_mixin:get_applies(Mixin),
+    Depends = occi_mixin:get_depends(Mixin),
     L = [build_cid(occi_mixin:get_id(Mixin), Env),
          render_kv(<<"title">>, occi_mixin:get_title(Mixin), Env),
+         render_kv(<<"rel">>, [ render_cid_uri(Cid) || Cid <- Applies ++ Depends ], Env),
          render_kv(<<"location">>, [occi_uri:to_iolist(occi_mixin:get_location(Mixin))], Env),
          render_kv(<<"attributes">>, render_attr_specs(occi_mixin:get_attributes(Mixin)), Env),
          render_kv(<<"actions">>, render_action_specs(occi_mixin:get_actions(Mixin)), Env)],
