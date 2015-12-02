@@ -25,7 +25,7 @@
 -include("occi_xml.hrl").
 
 -export([check/2,
-	 match/3]).
+         match/3]).
 
 -spec check(occi_attr_type(), term()) -> term().
 check({?xmlschema_ns, Type}, Val) ->
@@ -68,8 +68,8 @@ match(float, Val, {'=:=', M}) ->
 
 match(anyURI, Val, {'=:=', M}) ->
     try occi_uri:parse(M) of
-	Val -> true;
-	_ -> false
+        Val -> true;
+        _ -> false
     catch throw:_ -> false
     end;
 
@@ -99,17 +99,17 @@ to_integer(X) when is_integer(X) ->
     X;
 to_integer(X) when is_binary(X) ->
     try binary_to_integer(X) of
-	I -> I
+        I -> I
     catch
-	_:_ ->
-	    throw({error, {einval, X}})
+        _:_ ->
+            throw({error, {einval, X}})
     end;
 to_integer(X) when is_list(X) ->
     try list_to_integer(X) of
-	I -> I
+        I -> I
     catch
-	_:_ ->
-	    throw({error, {einval, X}})
+        _:_ ->
+            throw({error, {einval, X}})
     end;
 to_integer(X) ->
     throw({error, {einval, X}}).
@@ -120,27 +120,27 @@ to_float(X) when is_integer(X) ->
     X+0.0;
 to_float(X) when is_binary(X) ->
     try binary_to_float(X) of
-	V -> V
+        V -> V
     catch 
-	_:_ ->
-	    try binary_to_integer(X) of
-		V -> V+0.0
-	    catch
-		_:_ -> 
-		    throw({error, {einval, X}})
-	    end
+        _:_ ->
+            try binary_to_integer(X) of
+                V -> V+0.0
+            catch
+                _:_ -> 
+                    throw({error, {einval, X}})
+            end
     end;
 to_float(X) when is_list(X) ->
     try list_to_float(X) of
-	V -> V
+        V -> V
     catch 
-	_:_ ->
-	    try list_to_integer(X) of
-		V -> V+0.0
-	    catch
-		_:_ -> 
-		    throw({error, {einval, X}})
-	    end
+        _:_ ->
+            try list_to_integer(X) of
+                V -> V+0.0
+            catch
+                _:_ -> 
+                    throw({error, {einval, X}})
+            end
     end;
 to_float(X) ->
     throw({error, {einval, X}}).
