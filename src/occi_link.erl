@@ -67,7 +67,7 @@ new(Id, #occi_kind{}=Kind) ->
     Attrs = [orddict:to_list(occi_kind:get_attributes(Kind)),
              ?CORE_ATTRS],
     set_id(#occi_link{cid=occi_kind:get_id(Kind), 
-					  attributes=orddict:from_list(lists:flatten(Attrs))}, Id).
+                      attributes=orddict:from_list(lists:flatten(Attrs))}, Id).
 
 -spec new(occi_kind() | uri()) -> occi_link().
 new(#occi_kind{}=Kind) ->
@@ -87,9 +87,9 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes, Source, Target) ->
                                orddict:to_list(occi_mixin:get_attributes(Mixin))
                        end, Mixins)],
     L = set_id(#occi_link{cid=occi_kind:get_id(Kind), 
-						  attributes=orddict:from_list(lists:flatten(Attrs)),
-						  source=Source,
-						  target=Target}, Id),
+                          attributes=orddict:from_list(lists:flatten(Attrs)),
+                          source=Source,
+                          target=Target}, Id),
     lists:foldl(fun ({Key, Value}, Acc) ->
                         occi_link:set_attr_value(Acc, Key, Value)
                 end, L, Attributes).
@@ -103,11 +103,9 @@ id(#occi_link{id=Id}) ->
 
 -spec set_id(occi_link(), occi_objid()) -> occi_link().
 set_id(#occi_link{}=L, Id) when is_binary(Id) ->
-	set_id(L, occi_uri:parse(Id));
-set_id(#occi_link{id=undefined}=L, #uri{}=Id) -> 
-    L#occi_link{id=Id};
-set_id(#occi_link{id=#uri{}}=L, _) ->
-	L.
+    set_id(L, occi_uri:parse(Id));
+set_id(#occi_link{}=L, #uri{}=Id) -> 
+    L#occi_link{id=Id}.
 
 -spec get_source(occi_link()) -> uri().
 get_source(#occi_link{source=Src}) ->
@@ -166,16 +164,17 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=M
                   attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-set_attr_value(#occi_link{id=undefined}=Link, 'occi.core.id', Val) ->
+set_attr_value(#occi_link{}=Link, 'occi.core.id', Val) ->
     set_id(Link, Val);
-set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', Val) ->
-	?debug("set_attr_value(~s, 'occi.core.id', ~s", [Path, Val]),
-    case occi_uri:parse(Val) of
-        #uri{path=Path} ->
-            Link;
-        _ ->
-            throw({id_conflict, Path, Val})
-    end;
+%% set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', #uri{path=Path}) ->
+%%     Link;
+%% set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', Val) ->
+%%     case occi_uri:parse(Val) of
+%%         #uri{path=Path} ->
+%%             Link;
+%%         _ ->
+%%             throw({id_conflict, Path, Val})
+%%     end;
 set_attr_value(#occi_link{}=Link, <<"occi.core.title">>, Val) ->
     set_attr_value(Link, 'occi.core.title', Val);
 set_attr_value(#occi_link{}=Link, <<"occi.core.source">>, Val) ->
@@ -192,7 +191,7 @@ set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_binary(Key);
             Attr = orddict:fetch(Key, Attrs),
             Link#occi_link{attributes=orddict:store(Key, occi_attribute:set_value(Attr, Val), Attrs)};
         false ->
-            {error, {undefined_attribute, Key}}
+            throw({undefined_attribute, Key})
     end.
 
 -spec update_attr_value(occi_resource(), term()) -> occi_resource().
