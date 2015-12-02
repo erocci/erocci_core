@@ -6,7 +6,6 @@
 		status="stable" version="1">
 
   <occi:kind term="entity" scheme="http://schemas.ogf.org/occi/core#" title="Core Entity">
-    <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="root" />
     <occi:attribute name="occi.core.id" type="xs:string" title="Id" />
     <occi:attribute name="occi.core.title" type="xs:string" title="Display name" />
   </occi:kind>
