@@ -173,7 +173,7 @@ render_kv(Key, Value, Env) ->
 format_value(#uri{}=V, _) ->
     ["\"", occi_uri:to_iolist(V), "\""];
 format_value(V, _) when is_atom(V) ->
-    io_lib:format("~s", [V]);
+    io_lib:format("\"~s\"", [V]);
 format_value(V, _) when is_integer(V) ->
     io_lib:format("~b", [V]);
 format_value(V, _) when is_float(V) ->
