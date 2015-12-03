@@ -12,7 +12,7 @@
 
   <occi:kind term="resource" scheme="http://schemas.ogf.org/occi/core#" title="Core Resource">
     <occi:parent scheme="http://schemas.ogf.org/occi/core#" term="entity" />
-    <occi:attribute name="occi.core.summary" type="xs:summary" title="Summarising description" />
+    <occi:attribute name="occi.core.summary" type="xs:string" title="Summarising description" />
   </occi:kind>
 
 
