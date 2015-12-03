@@ -53,7 +53,8 @@
 
 -export([reset/1]).
 
--define(CORE_ATTRS, [{'occi.core.title', occi_attribute:core_title()}]).
+-define(CORE_ATTRS, [{'occi.core.id', occi_attribute:core_id()},
+					 {'occi.core.title', occi_attribute:core_title()}]).
 
 %%%
 %%% API
@@ -104,7 +105,7 @@ id(#occi_link{id=Id}) ->
 -spec set_id(occi_link(), occi_objid()) -> occi_link().
 set_id(#occi_link{}=L, Id) when is_binary(Id) ->
     set_id(L, occi_uri:parse(Id));
-set_id(#occi_link{}=L, #uri{}=Id) -> 
+set_id(#occi_link{}=L, Id) -> 
     L#occi_link{id=Id}.
 
 -spec get_source(occi_link()) -> uri().
@@ -164,8 +165,8 @@ del_mixin(#occi_link{mixins=Mixins, attributes=Attrs}=Res, #occi_mixin{id=Cid}=M
                   attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_link(), occi_attr_key(), any()) -> occi_link().
-set_attr_value(#occi_link{}=Link, 'occi.core.id', Val) ->
-    set_id(Link, Val);
+%%set_attr_value(#occi_link{}=Link, 'occi.core.id', Val) ->
+%%    set_id(Link, Val);
 %% set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', #uri{path=Path}) ->
 %%     Link;
 %% set_attr_value(#occi_link{id=#uri{path=Path}}=Link, 'occi.core.id', Val) ->
@@ -206,9 +207,9 @@ update_attr_value(#occi_link{attributes=Attrs}=Link, List) ->
     Link#occi_link{attributes=New_attr}.
 
 -spec get_attr(occi_link(), occi_attr_key()) -> any().
-get_attr(#occi_link{id=Val}, 'occi.core.id') ->
-    A = occi_attribute:core_id(),
-    A#occi_attr{value=Val};
+%%get_attr(#occi_link{id=Val}, 'occi.core.id') ->
+%%    A = occi_attribute:core_id(),
+%%    A#occi_attr{value=Val};
 get_attr(#occi_link{source=Val}, 'occi.core.source') ->
     A = occi_attribute:core_src(),
     A#occi_attr{value=Val};

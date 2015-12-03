@@ -50,7 +50,8 @@
 
 -export([reset/1]).
 
--define(CORE_ATTRS, [{'occi.core.title', occi_attribute:core_title()},
+-define(CORE_ATTRS, [{'occi.core.id', occi_attribute:core_id()},
+					 {'occi.core.title', occi_attribute:core_title()},
                      {'occi.core.summary', occi_attribute:core_summary()}]).
 
 %%%
@@ -107,10 +108,8 @@ id(#occi_resource{id=Id}) ->
 -spec set_id(occi_resource(), occi_objid() | binary()) -> occi_resource().
 set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
 	set_id(Res, occi_uri:parse(Id));
-set_id(#occi_resource{id=undefined}=Res, #uri{}=Id) -> 
-    Res#occi_resource{id=Id};
-set_id(#occi_resource{id=#uri{}}=Res, _) ->
-	Res.
+set_id(#occi_resource{}=Res, Id) -> 
+    Res#occi_resource{id=Id}.
 
 
 -spec get_cid(occi_resource()) -> occi_cid().
@@ -146,8 +145,8 @@ del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res,
                       attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
-set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
-    set_id(Res, Val);
+%%set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
+%%    set_id(Res, Val);
 set_attr_value(#occi_resource{}=Res, <<"occi.core.links">>, Val) when is_list(Val) ->
     lists:foldl(fun (Link, Acc) ->
                         add_link(Acc, occi_uri:parse(Link))
@@ -173,14 +172,14 @@ update_attr_value(#occi_resource{attributes=Attrs}=Res, List) ->
     Res#occi_resource{attributes=New_attr}.
 
 -spec get_attr(occi_resource(), occi_attr_key()) -> any().
-get_attr(#occi_resource{id=Id}, 'occi.core.id') ->
-    A = occi_attribute:core_id(),
-    A#occi_attr{value=Id};
+%%get_attr(#occi_resource{id=Id}, 'occi.core.id') ->
+%%    A = occi_attribute:core_id(),
+%%    A#occi_attr{value=Id};
 get_attr(#occi_resource{attributes=Attr}, Key) ->
     orddict:find(Key, Attr).
 
-get_attr_value(#occi_resource{}=R, 'occi.core.id') ->
-    get_id(R);
+%%get_attr_value(#occi_resource{}=R, 'occi.core.id') ->
+%%    get_id(R);
 get_attr_value(#occi_resource{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, #occi_attr{value=V}} -> V;

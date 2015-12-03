@@ -89,9 +89,9 @@ id(#occi_link{}=L) ->
 
 -spec set_id(occi_resource() | occi_link(), uri()) -> t().
 set_id(#occi_resource{}=R, Id) ->
-    occi_resource:set_attr_value(R, 'occi.core.id', Id);
+    occi_resource:set_id(R, Id);
 set_id(#occi_link{}=L, Id) ->
-    occi_link:set_attr_value(L, 'occi.core.id', Id).
+    occi_link:set_id(L, Id).
 
 id(Res, Id) ->
     set_id(Res, Id).

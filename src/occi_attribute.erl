@@ -151,7 +151,7 @@ rm_prefix(_, _) ->
 %%% OCCI Core attributes
 %%%
 core_id() ->
-    Props = dict:from_list([{immutable, true},
+    Props = dict:from_list([{immutable, false},
                             {required, true},
                             {default, undefined}]),
     #occi_attr{id='occi.core.id', properties=Props, type={?xmlschema_ns, anyURI}}.
