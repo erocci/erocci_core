@@ -156,10 +156,10 @@ render_attribute_specs([#occi_attr{}=Attr|Tail], Acc, Env) ->
          {mutable, not occi_attribute:is_immutable(Attr)},
          {title, occi_attribute:get_title(Attr)},
          {required, occi_attribute:is_required(Attr)},
-         {type, occi_attribute:get_type_id(Attr)},
+         {type, render_attribute_type(occi_attribute:get_type_id(Attr))},
          {default, occi_attribute:get_default(Attr)}
         ],
-    Id = split_attr_id(occi_attribute:get_id(Attr)),
+    Id = to_binary(occi_attribute:get_id(Attr)),
     render_attribute_specs(Tail, insert_attr(Id, { strip_list(L) }, Acc), Env).
 
 render_attribute_values(Attr, Env) ->
@@ -168,8 +168,8 @@ render_attribute_values(Attr, Env) ->
 render_attribute_values([], Acc, _) ->
     Acc;
 render_attribute_values([#occi_attr{}=Attr|Tail], Acc, Env) ->
-    Id = split_attr_id(occi_attribute:get_id(Attr)),
-    case occi_attribute:get_value(Attr) of
+    Id = to_binary(occi_attribute:get_id(Attr)),
+    case occi_attribute:value(Attr) of
         undefined ->
             render_attribute_values(Tail, Acc, Env);
         #uri{}=U ->
@@ -179,6 +179,22 @@ render_attribute_values([#occi_attr{}=Attr|Tail], Acc, Env) ->
         Value ->
             render_attribute_values(Tail, insert_attr(Id, Value, Acc), Env)
     end.
+
+
+render_attribute_type({enum, _Values}) ->
+    <<"string">>;
+render_attribute_type({?xmlschema_ns, Type}) ->
+    render_attribute_type(Type);
+render_attribute_type(string) ->
+    string;
+render_attribute_type(integer) ->
+    number;
+render_attribute_type(float) ->
+    number;
+render_attribute_type(boolean) ->
+    string;
+render_attribute_type(_) ->
+    string.
 
 
 render_entities(Entities, Env) ->
@@ -191,20 +207,19 @@ render_entities(Entities, Env) ->
         end,
     ordsets:fold(F, [], Entities).
 
-                                                %
-                                                % insert attribute name/value into ejson tree.
-                                                % Name is a list of binary
-                                                %
+%%%
+%%% insert attribute name/value into ejson tree.
+%%% Name is a list of binary
+%%%
 -spec insert_attr(Name :: [binary()], Value :: term(), ejson()) -> ejson().
-insert_attr([ Name ], Value, {Tree}) ->
-    { [{Name, Value} | Tree ]};
-insert_attr([ Name | Tail ], Value, {[ {Name, Children} | OtherNS ]}) ->
-    { [{Name, insert_attr(Tail, Value, Children) } | OtherNS] };
-insert_attr([ Name | Tail ], Value, {Tree}) ->
-    { [{Name, insert_attr(Tail, Value, {[]}) } | Tree] }.
-
-split_attr_id(Name) ->
-    [ T || T <- binary:split(to_binary(Name), <<".">>, [global])].
+%% insert_attr([ Name ], Value, {Tree}) ->
+%%     { [{Name, Value} | Tree ]};
+%% insert_attr([ Name | Tail ], Value, {[ {Name, Children} | OtherNS ]}) ->
+%%     { [{Name, insert_attr(Tail, Value, Children) } | OtherNS] };
+%% insert_attr([ Name | Tail ], Value, {Tree}) ->
+%%     { [{Name, insert_attr(Tail, Value, {[]}) } | Tree] };
+insert_attr(Name, Value, {Tree}) when is_binary(Name) ->
+    { [{Name, Value} | Tree ]}.
 
 strip_list(L) ->
     strip_list(L, []).
