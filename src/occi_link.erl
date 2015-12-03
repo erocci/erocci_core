@@ -54,7 +54,7 @@
 -export([reset/1]).
 
 -define(CORE_ATTRS, [{'occi.core.id', occi_attribute:core_id()},
-					 {'occi.core.title', occi_attribute:core_title()}]).
+                     {'occi.core.title', occi_attribute:core_title()}]).
 
 %%%
 %%% API
@@ -217,7 +217,11 @@ get_attr(#occi_link{target=Val}, 'occi.core.target') ->
     A = occi_attribute:core_target(),
     A#occi_attr{value=Val};
 get_attr(#occi_link{attributes=Attr}, Key) ->
-    orddict:find(Key, Attr).
+    case orddict:find(Key, Attr) of
+        {ok, A} -> A;
+        error -> throw({invalid_attribute, Key})
+    end.
+
 
 get_attr_value(#occi_link{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of

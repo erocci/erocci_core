@@ -51,7 +51,7 @@
 -export([reset/1]).
 
 -define(CORE_ATTRS, [{'occi.core.id', occi_attribute:core_id()},
-					 {'occi.core.title', occi_attribute:core_title()},
+                     {'occi.core.title', occi_attribute:core_title()},
                      {'occi.core.summary', occi_attribute:core_summary()}]).
 
 %%%
@@ -70,8 +70,8 @@ new(#occi_kind{}=Kind) ->
                    links=sets:new()};
 new(Id) ->
     set_id(#occi_resource{
-			  attributes=orddict:from_list(?CORE_ATTRS), 
-			  links=sets:new()}, Id).
+              attributes=orddict:from_list(?CORE_ATTRS), 
+              links=sets:new()}, Id).
 
 -spec new(Id :: occi_objid(), Kind :: occi_kind()) -> occi_resource().
 new(Id, #occi_kind{}=Kind) ->
@@ -92,8 +92,8 @@ new(Id, #occi_kind{}=Kind, Mixins, Attributes) ->
                                orddict:to_list(occi_mixin:get_attributes(Mixin))
                        end, Mixins)],
     R = set_id(#occi_resource{cid=occi_kind:get_id(Kind), 
-							  attributes=orddict:from_list(lists:flatten(Attrs)),
-							  links=sets:new()}, Id),
+                              attributes=orddict:from_list(lists:flatten(Attrs)),
+                              links=sets:new()}, Id),
     lists:foldl(fun ({Key, Value}, Acc) ->
                         occi_resource:set_attr_value(Acc, Key, Value)
                 end, R, Attributes).
@@ -107,7 +107,7 @@ id(#occi_resource{id=Id}) ->
 
 -spec set_id(occi_resource(), occi_objid() | binary()) -> occi_resource().
 set_id(#occi_resource{}=Res, Id) when is_binary(Id) ->
-	set_id(Res, occi_uri:parse(Id));
+    set_id(Res, occi_uri:parse(Id));
 set_id(#occi_resource{}=Res, Id) -> 
     Res#occi_resource{id=Id}.
 
@@ -176,7 +176,10 @@ update_attr_value(#occi_resource{attributes=Attrs}=Res, List) ->
 %%    A = occi_attribute:core_id(),
 %%    A#occi_attr{value=Id};
 get_attr(#occi_resource{attributes=Attr}, Key) ->
-    orddict:find(Key, Attr).
+    case orddict:find(Key, Attr) of
+        {ok, A} -> A;
+        error -> throw({invalid_attribute, Key})
+    end.
 
 %%get_attr_value(#occi_resource{}=R, 'occi.core.id') ->
 %%    get_id(R);
