@@ -43,6 +43,12 @@ check(float, Val) ->
 check(anyURI, Val) ->
     to_uri(Val);
 
+check({enum, Values}, Val) when is_list(Val) ->
+    check({enum, Values}, list_to_binary(Val));
+
+check({enum, Values}, Val) ->
+    check_enum(Values, Val);
+
 check(_, Val) ->
     to_string(Val).
 
@@ -51,7 +57,7 @@ check(_, Val) ->
 match({?xmlschema_ns, Type}, Value, M) ->
     match(Type, Value, M);
 
-match(string, Val, {'=:=', Val}) ->
+match(_, Val, {'=:=', Val}) -> 
     true;
 
 match(string, Val, {like, Val}) ->
@@ -73,7 +79,16 @@ match(anyURI, Val, {'=:=', M}) ->
     catch throw:_ -> false
     end;
 
-match(_, Val, {'=:=', Val}) -> 
+match({enum, Values}, Val, Expr) when is_list(Val) ->
+    match({enum, Values}, list_to_binary(Val), Expr);
+
+match({enum, Values}, Val, {'=:=', M}) when is_list(M) ->
+    match({enum, Values}, Val, {'=:=', list_to_binary(M)});
+
+match({enum, Values}, Val, {'=:=', M}) when is_atom(M) ->
+    match({enum, Values}, Val, {'=:=', atom_to_binary(M, utf8)});
+
+match({enum, _Values}, Val, {'=:=', Val}) ->
     true;
 
 match(_, _, _) -> 
@@ -145,9 +160,28 @@ to_float(X) when is_list(X) ->
 to_float(X) ->
     throw({error, {einval, X}}).
 
+
+check_enum([], Val) ->
+    throw({einval, Val});
+check_enum([ Head | Tail], Val) ->
+    case atom_to_binary(Head, utf8) of
+        Val -> Head;
+        _ -> check_enum(Tail, Val)
+    end.
+
+
 match_string(undefined, _) -> false;
 match_string(<<>>, <<>>) -> true;
 match_string(_, <<>>) -> true;
 match_string(<<>>, _) -> false;
 match_string(<<C, Rest/bits>>, <<C, Rest2/bits>>) -> match_string(Rest, Rest2);
 match_string(<<_, Rest/bits>>, M) -> match_string(Rest, M).
+
+
+match_enum([], _) -> 
+    false;
+match_enum([ Head | Tail], Val) ->
+    case atom_to_binary(Head, utf8) of
+        Val -> true;
+        _ -> match_enum(Tail, Val)
+    end.

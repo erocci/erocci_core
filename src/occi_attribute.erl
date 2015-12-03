@@ -76,8 +76,12 @@ get_type_id(#occi_attr{type=Id}) ->
 get_type(#occi_attr{type=Type}) ->
     {?xmlschema_ns, Type}.
 
+set_type(A, {enum, Values}) ->
+    A#occi_attr{type={enum, Values}};
 set_type(A, {?xmlschema_ns, Type}) ->
-    A#occi_attr{type=Type}.
+    A#occi_attr{type=Type};
+set_type(_, Type) ->
+    throw({invalid_type, Type}).
 
 is_required(A) ->
     dict:fetch(required, A#occi_attr.properties).

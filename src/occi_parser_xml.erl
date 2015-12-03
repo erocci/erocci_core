@@ -31,7 +31,7 @@
 
 %% API
 -export([load_extension/1,
-		 parse_extension/1,
+         parse_extension/1,
          parse_el/1,
          parse_full/1,
          parse_action/3,
@@ -52,6 +52,7 @@
          action/3,
          eof/3, 
          attribute_spec/3,
+         restriction/3,
          mixin/3,
          action_spec/3]).
 
@@ -65,18 +66,19 @@
          {max_size, infinity}]).
 
 -record(state, {
-                request     = #occi_request{}     :: occi_request(),
-                collection                        :: occi_collection(),
-                entity      = undefined           :: term(),
-                entity_id   = undefined           :: uri(),
-                link        = undefined           :: occi_link(),
-                mixin       = undefined           :: term(),
-                action      = undefined           :: occi_action(),
-                prefixes,
-                extension                         :: occi_extension(),
-                kind                              :: occi_kind(),
-                attribute                         :: occi_attr(),
-                type}).
+          request     = #occi_request{}     :: occi_request(),
+          collection                        :: occi_collection(),
+          entity      = undefined           :: term(),
+          entity_id   = undefined           :: uri(),
+          link        = undefined           :: occi_link(),
+          mixin       = undefined           :: term(),
+          action      = undefined           :: occi_action(),
+          prefixes,
+          extension                         :: occi_extension(),
+          kind                              :: occi_kind(),
+          attribute                         :: occi_attr(),
+          enum                              :: list(),
+          type}).
 
 %%%===================================================================
 %%% API
@@ -355,7 +357,7 @@ resource(E=?attribute, _From,
             end;
         {error, Err} ->
             {reply, {error, Err}, eof, Ctx}
-    end;	
+    end;    
 
 resource(?attributeEnd, _From, Ctx) ->
     {reply, ok, resource, Ctx};
@@ -443,16 +445,16 @@ link(?mixinEnd, _From, Ctx) ->
 link(E=?attribute, _From, #parser{state=#state{entity=#occi_resource{}, link=#occi_link{}=L}=S}=Ctx) ->
     case make_attribute(E, S) of
         {ok, 'occi.core.source', _} ->
-            % Inline link: source is enclosing resource
+                                                % Inline link: source is enclosing resource
             {reply, {error, {invalid_attribute, 'occi.core.source'}}, eof, Ctx};
         {ok, Key, Val} ->
             try occi_link:set_attr_value(L, Key, Val) of
                 #occi_link{}=L2 ->
                     {reply, ok, link, ?set_state(Ctx, S#state{link=L2})}
             catch throw:Err -> {reply, {error, Err}, eof, Ctx}
-            end;
+                                end;
         {error, Err} -> {reply, {error, Err}, eof, Ctx}
-    end;	
+    end;    
 
 link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=L}=S}=Ctx) ->
     case make_attribute(E, S) of
@@ -461,9 +463,9 @@ link(E=?attribute, _From, #parser{state=#state{entity=#occi_link{}=L}=S}=Ctx) ->
                 #occi_link{}=L2 ->
                     {reply, ok, link, ?set_state(Ctx, S#state{entity=L2})}
             catch throw:Err -> {reply, {error, Err}, eof, Ctx}
-            end;
+                                end;
         {error, Err} -> {reply, {error, Err}, eof, Ctx}
-    end;	
+    end;    
 
 link(?attributeEnd, _From, Ctx) ->
     {reply, ok, link, Ctx};
@@ -593,6 +595,21 @@ mixin(_E=?mixinEnd, _From, #parser{state=#state{extension=Ext, mixin=Mixin}=Stat
 mixin(E, _From, Ctx) ->
     other_event(E, Ctx, mixin).
 
+attribute_spec(E=?restriction, _From, #parser{state=S}=Ctx) ->
+    case get_attr_value(E, <<"base">>, undefined) of
+        undefined ->
+            ?debug("Missing restriction attribute: base", []),
+            parse_error(E, attribute_spec, Ctx);
+        BaseBin ->
+            case resolve_ns(BaseBin, S#state.prefixes) of
+                {?xmlschema_ns, string} ->
+                    push(restriction, ?set_state(Ctx, S#state{enum=[]}));
+                Err ->
+                    ?debug("Only string restrictions accepted: ~p", [Err]),
+                    parse_error(E, attribute_spec, Ctx)
+            end
+    end;
+
 attribute_spec(_E=?attributeEnd, _From, 
                #parser{stack=[_Cur,Prev|_Stack], state=#state{attribute=A}=State}=Ctx) ->
     State2 = case Prev of
@@ -609,6 +626,24 @@ attribute_spec(_E=?attributeEnd, _From,
     pop(?set_state(Ctx, State2#state{attribute=undefined}));
 attribute_spec(E, _From, Ctx) ->
     other_event(E, Ctx, attribute_spec).
+
+restriction(E=?enumeration, _From, #parser{state=#state{enum=Enum}=State}=Ctx) ->
+    case get_attr_value(E, <<"value">>, undefined) of
+        undefined ->
+            ?debug("Missing 'value' attribute in 'enumeration'", []),
+            parse_error(E, restriction, Ctx);
+        V ->
+            Value = binary_to_atom(V, utf8),
+            {reply, ok, restriction, ?set_state(Ctx, State#state{enum=[Value | Enum]})}
+    end;
+restriction(?enumerationEnd, _From, Ctx) ->
+    {reply, ok, restriction, Ctx};
+restriction(?restrictionEnd, _From, 
+            #parser{state=#state{enum=Values, attribute=A}=State}=Ctx) ->
+    A2 = occi_attribute:set_type(A, {enum, Values}),
+    pop(?set_state(Ctx, State#state{enum=[], attribute=A2}));
+restriction(E, _From, Ctx) ->
+    other_event(E, Ctx, restriction).
 
 action_spec(E=?attribute, _From, #parser{state=State}=Ctx) ->
     try make_attr_spec(E, State) of
@@ -857,8 +892,8 @@ make_link_id(E, #state{entity_id=undefined, entity=#occi_link{id=Uri}}=S) ->
                 Uri -> S;
                 O -> {error, {invalid_id, O}}
             catch throw:Err -> 
-		    ?debug("Error parsing URI ~p: ~p~n", [Id, Err]),
-		    {error, Err}
+                    ?debug("Error parsing URI ~p: ~p~n", [Id, Err]),
+                    {error, Err}
             end
     end;
 
@@ -871,8 +906,8 @@ make_link_id(E, #state{entity_id=Uri, entity=Link}=State) ->
                 #uri{}=Uri -> State#state{entity_id=undefined, entity=occi_link:set_id(Link, Uri)};
                 O -> {error, {invalid_id, O}}
             catch throw:Err -> 
-		    ?debug("Error parsing URI ~p: ~p~n", [Id, Err]),
-		    {error, Err}
+                    ?debug("Error parsing URI ~p: ~p~n", [Id, Err]),
+                    {error, Err}
             end
     end.
 
@@ -907,10 +942,12 @@ make_collection(_E, #state{}=State) ->
 
 make_attr_spec(E, State) ->
     Name = get_attr_value(E, <<"name">>),
-    Type = get_type_id(E, <<"type">>, State),
     ?debug("Load attribute spec: ~s~n", [Name]),
     Attr = occi_attribute:new(Name),
-    Attr2 = occi_attribute:set_type(Attr, Type),
+    Attr2 = case get_attr_type(E, State) of
+                undefined -> Attr;
+                Type -> occi_attribute:set_type(Attr, Type)
+            end,
     Attr3 = case get_attr_value(E, <<"default">>, undefined) of
                 undefined -> Attr2;
                 Default -> Def = binary_to_atom(Default, latin1),
@@ -1014,7 +1051,7 @@ check_cid(#occi_cid{}=Cid, #state{extension=Ext}) ->
             end
     end.
 
-% Return a dict with prefix->ns_as_atom key/value
+                                                % Return a dict with prefix->ns_as_atom key/value
 -spec load_prefixes([{xmlname(), string()}]) -> term().
 load_prefixes(NS) ->
     load_prefixes(NS, []).
@@ -1024,8 +1061,8 @@ load_prefixes([], Acc) ->
 load_prefixes([{Name, Prefix}|Tail], Acc) ->
     load_prefixes(Tail, [{Prefix, Name}|Acc]).
 
-get_type_id(#xmlel{}=E, Name, #state{prefixes=P}) ->
-    case get_attr_value(E, Name, undefined) of
+get_attr_type(#xmlel{}=E, #state{prefixes=P}) ->
+    case get_attr_value(E, <<"type">>, undefined) of
         undefined -> undefined;
         Bin -> resolve_ns(Bin, P)
     end.
@@ -1048,7 +1085,7 @@ other_event(E, Ctx, StateName) ->
         true ->
             {reply, ok, StateName, Ctx};
         false ->
-            parse_error(E, Ctx)
+            parse_error(E, StateName, Ctx)
     end.
 
 is_ws(#xmlcdata{cdata = <<  "\n", Bin/binary >>}=E) ->
@@ -1062,13 +1099,13 @@ is_ws(#xmlcdata{cdata = <<>>}) ->
 is_ws(_) ->
     false.
 
-parse_error(E, Ctx) ->
-    ?error(build_err(E)),
+parse_error(E, StateName, Ctx) ->
+    ?error(build_err(E, StateName, Ctx)),
     {reply, {error, parse_error}, eof, Ctx}.
 
-build_err(#xmlel{name=Name}) ->
-    io_lib:format("Invalid element: ~p", [Name]);
-build_err(#xmlendtag{name=Name}) ->
-    io_lib:format("Invalid element: ~p", [Name]);
-build_err(E) ->
-    io_lib:format("Invalid element: ~p", [E]).
+build_err(#xmlel{name=Name}, StateName, _Ctx) ->
+    io_lib:format("Invalid element in state ~s: ~p", [StateName, Name]);
+build_err(#xmlendtag{name=Name}, StateName, _Ctx) ->
+    io_lib:format("Invalid element in state ~s: ~p", [StateName, Name]);
+build_err(E, StateName, _Ctx) ->
+    io_lib:format("Invalid element in state ~s: ~p", [StateName, E]).
