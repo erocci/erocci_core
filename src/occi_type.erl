@@ -176,12 +176,3 @@ match_string(_, <<>>) -> true;
 match_string(<<>>, _) -> false;
 match_string(<<C, Rest/bits>>, <<C, Rest2/bits>>) -> match_string(Rest, Rest2);
 match_string(<<_, Rest/bits>>, M) -> match_string(Rest, M).
-
-
-match_enum([], _) -> 
-    false;
-match_enum([ Head | Tail], Val) ->
-    case atom_to_binary(Head, utf8) of
-        Val -> true;
-        _ -> match_enum(Tail, Val)
-    end.
