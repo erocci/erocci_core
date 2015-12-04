@@ -14,8 +14,9 @@
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 
 -define(scheme_core, 'http://schemas.ogf.org/occi/core#').
--define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource}).
--define(cid_link, #occi_cid{scheme=?scheme_core, term=link}).
+-define(cid_resource, #occi_cid{scheme=?scheme_core, term=resource, class=kind}).
+-define(cid_link, #occi_cid{scheme=?scheme_core, term=link, class=kind}).
+-define(cid_entity, #occi_cid{scheme=?scheme_core, term=entity, class=kind}).
 
 -type occi_schema() :: XmlExt :: binary()
                                | occi_mixin()

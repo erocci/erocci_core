@@ -11,6 +11,7 @@ scheme_to_atom(<<"http://schemas.ogf.org/occi/core#">>)        -> 'http://schema
 scheme_to_atom(X) when is_binary(X)                            -> X.
 
 -spec term_to_atom(binary()) -> atom() | binary().
+term_to_atom(<<"entity">>)                     -> 'entity';
 term_to_atom(<<"resource">>)                   -> 'resource';
 term_to_atom(<<"link">>)                       -> 'link';
 term_to_atom(X) when is_binary(X)              -> X.

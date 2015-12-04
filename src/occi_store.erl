@@ -148,6 +148,15 @@ update(#occi_node{id=#uri{path=Path}, type=capabilities, data=#occi_mixin{}=Mixi
         deny -> {error, 403}
     end;
 
+update(#occi_node{type=occi_collection, objid=?cid_resource}, _Ctx) ->
+    {error, 403};
+
+update(#occi_node{type=occi_collection, objid=?cid_link}, _Ctx) ->
+    {error, 403};
+
+update(#occi_node{type=occi_collection, objid=?cid_entity}, _Ctx) ->
+    {error, 403};
+
 update(#occi_node{type=occi_collection, objid=#occi_cid{}}=Node, _Ctx) ->
     ?debug("occi_store:update(~p)~n", [Node]),
     cast(update, filter_collection(Node));
@@ -170,6 +179,15 @@ update(#occi_node{id=#uri{path=Path}, owner=_User}=Node, #occi_store_ctx{user=Us
     end.
 
 -spec delete(occi_node(), occi_store_ctx()) -> ok | {error, occi_store_err()}.
+delete(#occi_node{type=occi_collection, objid=?cid_resource}, _Ctx) ->
+    {error, 403};
+
+delete(#occi_node{type=occi_collection, objid=?cid_link}, _Ctx) ->
+    {error, 403};
+
+delete(#occi_node{type=occi_collection, objid=?cid_entity}, _Ctx) ->
+    {error, 403};
+
 delete(#occi_node{data=undefined, owner=User}=Node, #occi_store_ctx{user=_User_ctx, auth_ref=RefU}=Ctx) ->
     case occi_acl:check(delete, Node, User, RefU) of
         allow ->case load(Node, #occi_store_opts{}, Ctx) of
@@ -209,6 +227,10 @@ find(#occi_node{type=capabilities}=Req) ->
     ?debug("occi_store:find(~p)~n", [Req]),
     {K, M, A} = occi_category_mgr:find_all(),
     {ok, [occi_capabilities:new(K, M, A)]};
+
+find(#occi_node{type=occi_collection, objid=#occi_cid{scheme=?scheme_core}}=Req) ->
+    ?debug("occi_store:find(~p, ~p)~n", [Req]),
+    {ok, [Req]};
 
 find(#occi_node{type=occi_collection, objid=#occi_cid{}=Cid}=Req) ->
     ?debug("occi_store:find(~p, ~p)~n", [Req]),
@@ -393,6 +415,41 @@ delete(_Node) ->
     ?debug("occi_store:delete(~p)~n", [_Node]),
     {error, 500}.
 
+load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=entity}=Cid, 
+						   type=occi_collection, data=undefined}=Node, Opts) ->
+    ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
+    Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}),
+				   occi_kind:get_id(K) =/= ?cid_entity,
+				   occi_kind:get_id(K) =/= ?cid_resource,
+				   occi_kind:get_id(K) =/= ?cid_link  ],
+	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+    Coll = load_core_collection(Node, Kinds, Cid, Opts),
+    {ok, Node#occi_node{data=Coll}};
+
+load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=resource}=Cid, 
+						   type=occi_collection, data=undefined}=Node, Opts) ->
+    ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
+    Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}), 
+				   occi_kind:parent(K) =:= ?cid_resource,
+				   occi_kind:get_id(K) =/= ?cid_entity,
+				   occi_kind:get_id(K) =/= ?cid_resource,
+				   occi_kind:get_id(K) =/= ?cid_link ],
+	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+    Coll = load_core_collection(Node, Kinds, Cid, Opts),
+    {ok, Node#occi_node{data=Coll}};
+
+load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=link}=Cid, 
+						   type=occi_collection, data=undefined}=Node, Opts) ->
+    ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
+    Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}), 
+				   occi_kind:parent(K) =:= ?cid_link,
+				   occi_kind:get_id(K) =/= ?cid_entity,
+				   occi_kind:get_id(K) =/= ?cid_resource,
+				   occi_kind:get_id(K) =/= ?cid_link ],
+	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+    Coll = load_core_collection(Node, Kinds, Cid, Opts),
+    {ok, Node#occi_node{data=Coll}};
+
 load_collection(#occi_node{objid=#occi_cid{}=Cid, type=occi_collection, data=undefined}=Node, Opts) ->
     ?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
     Merge = fun (_B, #occi_node{data=undefined}, Acc) ->
@@ -422,6 +479,12 @@ load_collection(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts) ->
             {error, 500}
     end.
 
+load_core_collection(Node, Kinds, Type, Opts) ->
+    lists:foldl(fun (Kind, Acc) ->
+                        Cid = occi_kind:get_id(Kind),
+                        {ok, #occi_node{data=Coll}} = load_collection(Node#occi_node{objid=Cid}, Opts),
+                        occi_collection:merge(Coll, Acc)
+                end, occi_collection:new(Type), Kinds).
 
 -spec get_mounts() -> term(). % set()
 get_mounts() ->

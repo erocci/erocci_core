@@ -94,11 +94,9 @@ is_empty(#occi_collection{entities=E}) ->
 
 merge(#occi_collection{}=C, undefined) ->
     C;
-merge(#occi_collection{id=Id, entities=E1}=C1,
-      #occi_collection{id=Id, entities=E2}) ->
-    C1#occi_collection{entities=ordsets:union(E1, E2)};
-merge(_C1, _C2) ->
-    throw({error, {merge_collection_failed, _C1, _C2}}).
+merge(#occi_collection{entities=E1}=C1,
+      #occi_collection{entities=E2}) ->
+    C1#occi_collection{entities=ordsets:union(E1, E2)}.
 
 fold(#occi_collection{entities=E}=C, F) when is_function(F) ->
     E2 = ordsets:fold(fun (Uri, Acc) ->

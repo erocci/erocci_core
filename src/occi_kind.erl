@@ -90,6 +90,10 @@ get_parent(#occi_kind{parent=Parent}) ->
 parent(#occi_kind{parent=Parent}) ->
     Parent.
 
+set_parent(#occi_kind{}=Kind, #occi_cid{scheme=?scheme_core, term=resource}) ->
+    Kind#occi_kind{parent=?cid_resource};
+set_parent(#occi_kind{}=Kind, #occi_cid{scheme=?scheme_core, term=link}) ->
+    Kind#occi_kind{parent=?cid_link};
 set_parent(#occi_kind{}=Kind, #occi_cid{}=Cid) ->
     Kind#occi_kind{parent=Cid}.
 
