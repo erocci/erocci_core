@@ -145,8 +145,6 @@ del_mixin(#occi_resource{mixins=Mixins, attributes=Attrs}=Res,
                       attributes=occi_entity:rm_attrs(Mixin, Attrs)}.
 
 -spec set_attr_value(occi_resource(), occi_attr_key(), any()) -> occi_resource().
-%%set_attr_value(#occi_resource{}=Res, 'occi.core.id', Val) ->
-%%    set_id(Res, Val);
 set_attr_value(#occi_resource{}=Res, <<"occi.core.links">>, Val) when is_list(Val) ->
     lists:foldl(fun (Link, Acc) ->
                         add_link(Acc, occi_uri:parse(Link))
@@ -172,17 +170,24 @@ update_attr_value(#occi_resource{attributes=Attrs}=Res, List) ->
     Res#occi_resource{attributes=New_attr}.
 
 -spec get_attr(occi_resource(), occi_attr_key()) -> any().
-%%get_attr(#occi_resource{id=Id}, 'occi.core.id') ->
-%%    A = occi_attribute:core_id(),
-%%    A#occi_attr{value=Id};
+get_attr(#occi_resource{id=Id, attributes=Attr}, 'occi.core.id') ->
+    case orddict:find('occi.core.id', Attr) of
+        {ok, #occi_attr{value=undefined}=A} ->
+            A#occi_attr{value=Id};
+        {ok, A} ->
+            A
+    end;
 get_attr(#occi_resource{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, A} -> A;
         error -> throw({invalid_attribute, Key})
     end.
 
-%%get_attr_value(#occi_resource{}=R, 'occi.core.id') ->
-%%    get_id(R);
+get_attr_value(#occi_resource{id=Id, attributes=Attr}, 'occi.core.id') ->
+    case orddict:find('occi.core.id', Attr) of
+        {ok, #occi_attr{value=undefined}} -> Id;
+        {ok, #occi_attr{value=V}} -> V
+    end;
 get_attr_value(#occi_resource{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, #occi_attr{value=V}} -> V;

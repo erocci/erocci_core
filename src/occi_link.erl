@@ -207,9 +207,13 @@ update_attr_value(#occi_link{attributes=Attrs}=Link, List) ->
     Link#occi_link{attributes=New_attr}.
 
 -spec get_attr(occi_link(), occi_attr_key()) -> any().
-%%get_attr(#occi_link{id=Val}, 'occi.core.id') ->
-%%    A = occi_attribute:core_id(),
-%%    A#occi_attr{value=Val};
+get_attr(#occi_link{id=Id, attributes=Attr}, 'occi.core.id') ->
+    case orddict:find('occi.core.id', Attr) of
+        {ok, #occi_attr{value=undefined}=A} ->
+            A#occi_attr{value=Id};
+        {ok, A} ->
+            A
+    end;
 get_attr(#occi_link{source=Val}, 'occi.core.source') ->
     A = occi_attribute:core_src(),
     A#occi_attr{value=Val};
@@ -223,6 +227,11 @@ get_attr(#occi_link{attributes=Attr}, Key) ->
     end.
 
 
+get_attr_value(#occi_link{id=Id, attributes=Attr}, 'occi.core.id') ->
+    case orddict:find('occi.core.id', Attr) of
+        {ok, #occi_attr{value=undefined}} -> Id;
+        {ok, #occi_attr{value=V}} -> V
+    end;
 get_attr_value(#occi_link{attributes=Attr}, Key) ->
     case orddict:find(Key, Attr) of
         {ok, #occi_attr{value=V}} -> V;
