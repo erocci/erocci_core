@@ -195,8 +195,9 @@ get_attr_value(#occi_resource{attributes=Attr}, Key) ->
     end.        
 
 -spec get_attributes(occi_resource()) -> [occi_attr()].
-get_attributes(#occi_resource{attributes=Attrs}) ->
-    orddict:fold(fun (_Key, Value, Acc) -> [Value|Acc] end, [], Attrs).
+get_attributes(#occi_resource{attributes=Attrs}=R) ->
+    lists:foldl(fun (Key, Acc) -> [get_attr(R, Key) | Acc] end, [], 
+		orddict:fetch_keys(Attrs)).
 
 -spec add_link(occi_resource(), uri()) -> occi_resource().
 add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->

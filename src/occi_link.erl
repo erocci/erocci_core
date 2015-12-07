@@ -239,8 +239,9 @@ get_attr_value(#occi_link{attributes=Attr}, Key) ->
     end.        
 
 -spec get_attributes(occi_link()) -> [occi_attr()].
-get_attributes(#occi_link{attributes=Attrs}) ->
-    orddict:fold(fun (_Key, Value, Acc) -> [Value|Acc] end, [], Attrs).
+get_attributes(#occi_link{attributes=Attrs}=Link) ->
+    lists:foldl(fun (Key, Acc) -> [get_attr(Link, Key) | Acc] end, [], 
+		orddict:fetch_keys(Attrs)).
 
 -spec reset(occi_link()) -> occi_link().
 reset(#occi_link{attributes=Attrs}=Link) ->

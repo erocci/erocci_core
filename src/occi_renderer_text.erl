@@ -93,7 +93,7 @@ render_resource(Id, #occi_resource{}=Res, Acc, Env) ->
     Acc2 = render_cid(occi_resource:get_cid(Res), Acc, Env),
     Acc3 = sets:fold(fun(X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
                      Acc2, occi_resource:get_mixins(Res)),
-    Attrs = [ occi_resource:get_attr(Res, 'occi.core.id') | occi_resource:get_attributes(Res)],
+    Attrs = occi_resource:get_attributes(Res),
     Acc4 = lists:foldl(fun(X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
                        Acc3, Attrs),
     Acc5 = lists:foldl(fun (X, IntAcc) -> render_inline_link(X, IntAcc, Env) end, 
@@ -104,10 +104,7 @@ render_link(Id, #occi_link{}=Link, Acc, Env) ->
     Acc2 = render_cid(occi_link:get_cid(Link), Acc, Env),
     Acc3 = sets:fold(fun (X, IntAcc) -> render_cid(X, IntAcc, Env) end, 
                      Acc2, occi_link:get_mixins(Link)),
-    Attrs = [ occi_link:get_attr(Link, 'occi.core.id'),
-              occi_link:get_attr(Link, 'occi.core.source'), 
-              occi_link:get_attr(Link, 'occi.core.target') 
-              | occi_link:get_attributes(Link)],
+    Attrs = occi_link:get_attributes(Link),
     Acc4 = lists:foldl(fun (X, IntAcc) -> render_attribute(X, IntAcc, Env) end, 
                        Acc3, Attrs),
     render_location(Id, Acc4, Env).
