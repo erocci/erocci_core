@@ -177,7 +177,7 @@ format_value(V, _) when is_atom(V) ->
 format_value(V, _) when is_integer(V) ->
     io_lib:format("~b", [V]);
 format_value(V, _) when is_float(V) ->
-    io_lib:format("~g", [V]);
+    io_lib:format("~f", [V]);
 format_value(#uri{}=U, Env) ->
     ["\"", occi_uri:to_iolist(U, Env), "\""];
 format_value(V, _) ->
