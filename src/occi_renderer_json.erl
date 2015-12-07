@@ -124,7 +124,10 @@ render_ejson(ResId, #occi_resource{}=Res, Env) ->
 render_ejson(LinkId, #occi_link{}=Link, Env) ->
     Attrs = occi_link:get_attributes(Link),
     { strip_list([{kind, render_cid_uri(occi_link:get_cid(Link))}
-                 ,{id, occi_uri:to_binary(LinkId, Env)}
+                 ,{id, case LinkId of
+			   #uri{} -> occi_uri:to_binary(LinkId, Env);
+			   _ -> undefined
+		       end}
                  ,{mixins, sets:fold(fun (Id, Acc) ->
                                              [render_cid_uri(Id)|Acc]
                                      end, [], occi_link:get_mixins(Link))}

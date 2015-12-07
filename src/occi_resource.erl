@@ -42,6 +42,7 @@
          add_link/2,
          get_links/1,
          get_links_size/1,
+	 links/2,
          add_prefix/2,
          rm_prefix/2,
          update_attr_value/2,
@@ -205,6 +206,9 @@ add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
 
 add_link(#occi_resource{links=Links}=Res, #occi_link{}=Link) ->
     Res#occi_resource{links=sets:add_element(Link, Links)}.
+
+links(#occi_resource{}=R, Links) when is_list(Links) ->
+    R#occi_resource{links=sets:from_list(Links)}.
 
 -spec get_links(occi_resource()) -> [uri()].
 get_links(#occi_resource{links=Links}) ->

@@ -182,10 +182,14 @@ format_value(V, _) ->
 
 build_inline_link(Id, #occi_link{}=Link, Env) ->
     L = [ [ "<", occi_uri:to_iolist(occi_link:get_target(Link), Env), ">" ],
-          render_kv("self", occi_uri:to_iolist(Id, Env), Env),
+          render_kv(<<"rel">>, render_cid_uri(occi_link:target_cid(Link)), Env),
+          case Id of
+              #uri{} -> render_kv("self", occi_uri:to_iolist(Id, Env), Env);
+              _ -> []
+          end,
           render_kv("category", render_cid_uri(occi_link:get_cid(Link)), Env)],
     L2 = lists:foldl(fun (Attr, Acc) ->
-                             [ build_attribute(Attr, Env) | Acc ]
+                             Acc ++ [ build_attribute(Attr, Env) ]
                      end, L, occi_link:get_attributes(Link)),
     occi_renderer:join(L2, "; ").
 
@@ -200,7 +204,7 @@ build_cid(#occi_cid{term=Term, scheme=Scheme, class=Cls}, Env) ->
        render_kv(<<"class">>, to_list(Cls), Env)], "; ").
 
 add_header_value(Name, Value, Acc) ->
-                                                %check_iolist(Value),
+    %% check_iolist(Value),
     Values = case orddict:find(Name, Acc) of
                  {ok, V} -> V;
                  error -> []

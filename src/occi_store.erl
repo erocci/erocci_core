@@ -294,36 +294,24 @@ load(#occi_node{type=occi_collection, data=undefined}=Node, #occi_store_opts{nod
         deny -> {error, 403}
     end;
 
-load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, anonymous) ->
-    ?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
-    case get_backend(Path) of
-        {ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-            case occi_backend:load(Ref, occi_node:rm_prefix(Node, Prefix), Opts) of
-                {ok, Node2} ->
-                    {ok, occi_node:add_prefix(Node2, Prefix)};
-                {error, _Err} ->
-                    ?debug("backend error: ~p", [_Err]),
-                    {error, 400}
-            end;
-        {error, _Err} ->
-            {error, 500}
-    end;
-
-load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, #occi_store_ctx{user=User_ctx, auth_ref=RefU}) ->
-    case occi_acl:check(read, Node, User_ctx, RefU) of
-        allow ->?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
-                case get_backend(Path) of
-                    {ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
-                        case occi_backend:load(Ref, occi_node:rm_prefix(Node, Prefix), Opts) of
-                            {ok, Node2} ->
-                                {ok, occi_node:add_prefix(Node2, Prefix)};
-                            {error, _Err} ->
-                                ?debug("backend error: ~p", [_Err]),
-                                {error, 400}
-                        end;
-                    {error, _Err} ->
-                        {error, 500}
-                end;
+load(#occi_node{id=#uri{path=Path}, data=undefined}=Node, Opts, Ctx) ->
+    case authz(read, Node, Ctx) of
+        allow ->
+	    ?debug("occi_store:load(~p, ~p)~n", [Node, Opts]),
+	    case get_backend(Path) of
+		{ok, #occi_node{id=#uri{path=Prefix}, objid=Ref}} ->
+		    case occi_backend:load(Ref, occi_node:rm_prefix(Node, Prefix), Opts) of
+			{ok, #occi_node{data=#occi_resource{}}=Node2} ->
+			    load_links(occi_node:add_prefix(Node2, Prefix), Opts, Ctx);
+			{ok, Node2} ->
+			    {ok, occi_node:add_prefix(Node2, Prefix)};
+			{error, _Err} ->
+			    ?debug("backend error: ~p", [_Err]),
+			    {error, 400}
+		    end;
+		{error, _Err} ->
+		    {error, 500}
+	    end;
         deny -> {error, 403}
     end;
 
@@ -631,3 +619,28 @@ load_user_mixins(#occi_node{objid=Ref}) ->
         {error, Err} ->
             {error, Err}
     end.
+
+authz(_Op, _Node, anonymous) ->
+    allow;
+authz(Op, Node, #occi_store_ctx{user=UserCtx, auth_ref=Ref}) ->
+    occi_acl:check(Op, Node, UserCtx, Ref).
+
+
+load_links(#occi_node{data=#occi_resource{}=R}=N, Opts, Ctx) ->
+    F = fun (#uri{}=LinkId, Acc) ->
+		case find(occi_node:new(LinkId, occi_link)) of
+		    {ok, [Ans]} -> 
+			case load(Ans, Opts, Ctx) of
+			    {ok, #occi_node{data=Link}} ->
+				[ Link | Acc];
+			    {error, Err} ->
+				throw(Err)
+			end;
+		    {ok, []} ->
+			Acc
+		end;
+	    (#occi_link{}=Link, Acc) ->
+		    [ Link | Acc ]
+	end,
+    Links = lists:foldl(F, [], occi_resource:get_links(R)),
+    {ok, N#occi_node{data=occi_resource:links(R, Links)}}.

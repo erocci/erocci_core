@@ -42,6 +42,7 @@
          get_target/1,
          set_target/2,
          get_target_cid/1,
+         target_cid/1,
          set_target_cid/2,
          get_source/1,
          set_source/2,
@@ -130,6 +131,9 @@ set_target(#occi_link{}=Link, Uri) ->
 
 -spec get_target_cid(occi_link()) -> occi_cid().
 get_target_cid(#occi_link{target_cid=C}) ->
+    C.
+
+target_cid(#occi_link{target_cid=C}) ->
     C.
 
 -spec set_target_cid(occi_link(), occi_cid()) -> occi_cid().
@@ -241,7 +245,7 @@ get_attr_value(#occi_link{attributes=Attr}, Key) ->
 -spec get_attributes(occi_link()) -> [occi_attr()].
 get_attributes(#occi_link{attributes=Attrs}=Link) ->
     lists:foldl(fun (Key, Acc) -> [get_attr(Link, Key) | Acc] end, [], 
-		orddict:fetch_keys(Attrs)).
+                orddict:fetch_keys(Attrs)).
 
 -spec reset(occi_link()) -> occi_link().
 reset(#occi_link{attributes=Attrs}=Link) ->
