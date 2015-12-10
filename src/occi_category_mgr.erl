@@ -142,7 +142,7 @@ find_all() ->
 %% @doc
 %% Starts the supervisor
 %%
-%% @spec hash(occi_cid() -> uri()
+%% @spec hash(occi_cid()) -> uri()
 %% @end
 %%--------------------------------------------------------------------
 hash(Cid) ->
