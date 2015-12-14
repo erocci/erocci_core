@@ -178,7 +178,10 @@ format_value(V, _) when is_float(V) ->
 format_value(#uri{}=U, Env) ->
     ["\"", occi_uri:to_iolist(U, Env), "\""];
 format_value(V, _) ->
-    ["\"", io_lib:format("~s", [V]), "\""].
+	try ["\"", io_lib:format("~s", [V]), "\""]
+	catch _:badarg ->
+			["\"", io_lib:format("~p", [V]), "\""]
+	end.
 
 build_inline_link(Id, #occi_link{}=Link, Env) ->
     L = [ [ "<", occi_uri:to_iolist(occi_link:get_target(Link), Env), ">" ],
@@ -189,7 +192,14 @@ build_inline_link(Id, #occi_link{}=Link, Env) ->
           end,
           render_kv("category", render_cid_uri(occi_link:get_cid(Link)), Env)],
     L2 = lists:foldl(fun (Attr, Acc) ->
-                             Acc ++ [ build_attribute(Attr, Env) ]
+							 case occi_attribute:id(Attr) of
+								 'occi.core.source' -> 
+								 	 Acc;
+								 'occi.core.target' -> 
+								 	 Acc;
+								 _ ->
+									 Acc ++ [ build_attribute(Attr, Env) ]
+							 end
                      end, L, occi_link:get_attributes(Link)),
     occi_renderer:join(L2, "; ").
 

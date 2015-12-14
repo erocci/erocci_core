@@ -55,7 +55,11 @@
 -export([reset/1]).
 
 -define(CORE_ATTRS, [{'occi.core.id', occi_attribute:core_id()},
-                     {'occi.core.title', occi_attribute:core_title()}]).
+                     {'occi.core.title', occi_attribute:core_title()},
+					 {'occi.core.target', link_target()},
+					 {'occi.core.target.kind', link_target_kind()},
+					 {'occi.core.source', link_source()},
+					 {'occi.core.source.kind', link_source_kind()}]).
 
 %%%
 %%% API
@@ -302,3 +306,28 @@ match_attr2([{_, Attr} | Rest], Val) ->
         true -> true;
         false -> match_attr2(Rest, Val)
     end.
+
+link_target() ->
+    Props = dict:from_list([{immutable, false},
+                            {required, true},
+                            {default, undefined}]),
+    #occi_attr{id='occi.core.target', properties=Props, type={?xmlschema_ns, anyURI}}.
+
+link_target_kind() ->
+    Props = dict:from_list([{immutable, false},
+                            {required, false},
+                            {default, undefined}]),
+    #occi_attr{id='occi.core.target.kind', properties=Props, type={?xmlschema_ns, string}}.
+
+
+link_source() ->
+    Props = dict:from_list([{immutable, false},
+                            {required, false},
+                            {default, undefined}]),
+    #occi_attr{id='occi.core.source', properties=Props, type={?xmlschema_ns, anyURI}}.
+
+link_source_kind() ->
+    Props = dict:from_list([{immutable, false},
+                            {required, false},
+                            {default, undefined}]),
+    #occi_attr{id='occi.core.target.kind', properties=Props, type={?xmlschema_ns, string}}.
