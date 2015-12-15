@@ -42,7 +42,7 @@
          add_link/2,
          get_links/1,
          get_links_size/1,
-	 links/2,
+         links/2,
          add_prefix/2,
          rm_prefix/2,
          update_attr_value/2,
@@ -198,14 +198,15 @@ get_attr_value(#occi_resource{attributes=Attr}, Key) ->
 -spec get_attributes(occi_resource()) -> [occi_attr()].
 get_attributes(#occi_resource{attributes=Attrs}=R) ->
     lists:foldl(fun (Key, Acc) -> [get_attr(R, Key) | Acc] end, [], 
-		orddict:fetch_keys(Attrs)).
+                orddict:fetch_keys(Attrs)).
 
 -spec add_link(occi_resource(), uri()) -> occi_resource().
 add_link(#occi_resource{links=Links}=Res, #uri{}=Link) ->
     Res#occi_resource{links=sets:add_element(Link, Links)};
 
-add_link(#occi_resource{links=Links}=Res, #occi_link{}=Link) ->
-    Res#occi_resource{links=sets:add_element(Link, Links)}.
+add_link(#occi_resource{cid=Cid, links=Links}=Res, #occi_link{}=Link) ->
+    Link2 = occi_link:set_target_cid(Link, Cid),
+    Res#occi_resource{links=sets:add_element(Link2, Links)}.
 
 links(#occi_resource{}=R, Links) when is_list(Links) ->
     R#occi_resource{links=sets:from_list(Links)}.
