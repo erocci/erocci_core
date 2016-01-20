@@ -1,5 +1,5 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (C) 2014, Jean Parpaillon
+%%% @copyright (c) 2014-2016 Jean Parpaillon
 %%% @doc Config has 2 sources:
 %%%  - application env
 %%%  - load/1 arg

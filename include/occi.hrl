@@ -1,5 +1,5 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (C) 2013-2015, Jean Parpaillon
+%%% @copyright (c) 2013-2016 Jean Parpaillon
 %%% @doc Created from https://github.com/dizz/occi-grammar/blob/master/occi-antlr-grammar/Occi.g
 %%%
 %%% @end
