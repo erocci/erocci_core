@@ -1,11 +1,8 @@
 *.beam
 *~
-/config.log
-/config.status
-/autom4te.cache
 /src/occi_scanner_json.erl
 /.erlang.mk
 /deps
 /ebin
 /erocci_core.d
-/Makefile
+/src/erocci_core.app.src

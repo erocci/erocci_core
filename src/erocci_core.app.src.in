@@ -17,6 +17,6 @@
 	erim_xml,
 	erocci_authnz
    ]},
-  {vsn, "git"},
+  {vsn, "@VSN@"},
   {registered, []}
  ]}.
