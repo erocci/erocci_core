@@ -13,7 +13,6 @@ addons:
       - libexpat1-dev
 
 install:
-  - "./bootstrap"
   - "make"
 
 script:
