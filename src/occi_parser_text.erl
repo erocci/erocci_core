@@ -203,7 +203,7 @@ parse_c_kv({ok, rel, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}
     catch throw:Err -> {error, Err}
     end;
 parse_c_kv({ok, rel, {string, _Bin}, Rest}, Cid, V, H, S) ->
-    % Ignore rel for other type of requests
+    %% Ignore rel for other type of requests
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
     try occi_uri:parse(Bin) of
@@ -212,7 +212,7 @@ parse_c_kv({ok, location, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mi
     catch throw:Err -> {error, Err}
     end;
 parse_c_kv({ok, location, {string, _Bin}, Rest}, Cid, V, H, S) ->
-    % Ignore location
+    %% Ignore location
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, scheme, {string, Bin}, Rest}, Cid, V, H, S) ->
     parse_c_kv(parse_kv(Rest), Cid#occi_cid{scheme=?scheme_to_atom(Bin)}, V, H, S);
@@ -227,13 +227,13 @@ parse_c_kv({ok, class, {string, Bin}, Rest}, #occi_cid{class=Cls}=Cid, V, H, S) 
 parse_c_kv({ok, title, {string, Bin}, Rest}, Cid, V, H, #state{mixin=#occi_mixin{}=M}=S) ->
     parse_c_kv(parse_kv(Rest), Cid, V, H, S#state{mixin=occi_mixin:set_title(M, Bin)});
 parse_c_kv({ok, title, {string, _Bin}, Rest}, Cid, V, H, S) ->
-    % Ignore: title won't be check 
+    %% Ignore: title won't be check 
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, actions, {string, _Bin}, Rest}, Cid, V, H, S) ->
-    % Ignore: actions won't be check 
+    %% Ignore: actions won't be check 
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({ok, attributes, {string, _Bin}, Rest}, Cid, V, H, S) ->
-    % Ignore: attributes won't be check 
+    %% Ignore: attributes won't be check 
     parse_c_kv(parse_kv(Rest), Cid, V, H, S);
 parse_c_kv({error, Err}, _, _, _, _) ->
     {error, Err};
@@ -322,7 +322,7 @@ parse_location(Headers, #state{entity=E}=S) ->
                     {error, {parse_error, Err}}
             end;
         error ->
-                                                % Note: location is optional since we generate uuid if missing
+	    %% Note: location is optional since we generate uuid if missing
             {ok, S}
     end.
 
