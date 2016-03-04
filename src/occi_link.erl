@@ -186,6 +186,10 @@ set_attr_value(#occi_link{}=Link, <<"occi.core.target">>, Val) ->
     set_target(Link, Val);
 set_attr_value(#occi_link{}=Link, 'occi.core.target', Val) ->
     set_target(Link, Val);
+set_attr_value(#occi_link{}=Link, <<"occi.core.target.kind">>, Val) ->
+    set_attr_value(Link, 'occi.core.target.kind', Val);
+set_attr_value(#occi_link{}=Link, <<"occi.core.source.kind">>, Val) ->
+    set_attr_value(Link, 'occi.core.source.kind', Val);
 set_attr_value(#occi_link{attributes=Attrs}=Link, Key, Val) when is_binary(Key); is_atom(Key) ->
     case orddict:is_key(Key, Attrs) of
         true ->
@@ -322,4 +326,4 @@ link_source_kind() ->
     Props = dict:from_list([{immutable, false},
                             {required, false},
                             {default, undefined}]),
-    #occi_attr{id='occi.core.target.kind', properties=Props, type={?xmlschema_ns, string}}.
+    #occi_attr{id='occi.core.source.kind', properties=Props, type={?xmlschema_ns, string}}.
