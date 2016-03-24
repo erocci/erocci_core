@@ -373,6 +373,8 @@ parse_key(<< C, Rest/bits >>, SoFar) ->
         $8 -> parse_key(Rest, << SoFar/binary, $8 >>);
         $9 -> parse_key(Rest, << SoFar/binary, $9 >>);
         $. -> parse_key(Rest, << SoFar/binary, $. >>);
+        $- -> parse_key(Rest, << SoFar/binary, $- >>);
+        $_ -> parse_key(Rest, << SoFar/binary, $_ >>);
         C ->
             {error, {parse_error, invalid_key}}
     end.
