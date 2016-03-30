@@ -3,8 +3,11 @@
  [
   {id, ""},
   {description, "erocci framework Core"},
-  {mod, {erocci_core_app, []}},
+  {mod, {application_starter, [erocci_core, []]}},
   {modules, []},
+  {start_phases, [
+		  {config, []}
+		 ]}
   {applications, 
    [
     kernel,
@@ -12,8 +15,13 @@
     sasl,
     inets,
     cowboy,
+    occi,
     erocci_authnz
    ]},
   {registered, []},
-  {env, []}
+  {env, 
+   [
+    {listeners, []},
+    {backends, []}
+   ]}
  ]}.

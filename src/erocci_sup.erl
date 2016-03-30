@@ -8,7 +8,7 @@
 %%% https://github.com/erocci/erocci/blob/master/LICENSE
 %%% 
 
-%% @doc Supervisor for the occi core application.
+%% @doc Supervisor for the erocci_core application.
 %% @end
 
 -module(erocci_sup).
@@ -34,28 +34,11 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init(_) ->
-    TableMgr = {erocci_table_mgr,
-		{erocci_table_mgr, start_link, []},
-		permanent,
-		infinity,
-		worker,[erocci_table_mgr]},
-    Config = {erocci_config,
-	      {erocci_config, start_link, []},
-	      permanent,
-	      infinity,
-	      supervisor,
-	      [erocci_config]},
-    Store = {erocci_store,
-	     {erocci_store, start_link, []},
-	     permanent,
-	     infinity,
-	     supervisor,
-	     [erocci_store]},
-    Listener = {erocci_listener,
-		{erocci_listener, start_link, []},
-		permanent,
-		infinity,
-		supervisor,
-		[erocci_listener]},
-    Children = [TableMgr, Config, Store, Listener],
+    Listeners = {erocci_listeners,
+		 {erocci_listeners, start_link, []},
+		 permanent,
+		 infinity,
+		 supervisor,
+		 [erocci_listeners]},
+    Children = [Listeners],
     {ok, {{one_for_one, 10, 10}, Children}}.

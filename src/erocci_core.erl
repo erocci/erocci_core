@@ -13,16 +13,25 @@
 %%% @end
 %%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(erocci_core_app).
+-module(erocci_core).
+
+-include("erocci_log.hrl").
 
 -behaviour(application).
 
-%% Application callbacks
--export([start/2, stop/1]).
+-export([start/0]).
 
-%%%===================================================================
-%%% Application callbacks
-%%%===================================================================
+%% Application callbacks
+-export([start/2, 
+	 start_phase/3,
+	 stop/1]).
+
+%% @doc Start the erocci_core application
+%% @end
+-spec start() -> {ok, [atom()]} | {error, term()}.
+start() ->
+    applicaton:ensure_all_started(erocci_core).
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -41,23 +50,23 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    case erocci_sup:start_link() of
-        {error, Err} ->
-            {error, Err};
-        {ok, Pid} ->
-            occi_category_mgr:init(),
-            case occi_config:load([]) of
-                ok ->
-                    {ok, Pid};
-                {error, Err} ->
-                    {error, Err}
-            end;
-        ignore ->
-            {error, "invalid return from occi_sup: ignore"}
-    end;
+    erocci_sup:start_link();
 
 start(_StartType, _StartArgs) ->
     {error, badarg}.
+
+
+%% @doc Start phase `config' start listeners and backends, once
+%% supervisors have been started
+%% @end
+-spec start_phase(Phase :: atom(), Type :: atom(), Args :: term()) -> ok | {error, term()}.
+start_phase(config, normal, _Args) ->
+    Ret = start_listeners(erocci_config:get(listeners)),
+    Ret;
+
+start_phase(_, _, _) ->
+    ok.
+
 
 %%--------------------------------------------------------------------
 %% @private
@@ -71,3 +80,19 @@ start(_StartType, _StartArgs) ->
 %%--------------------------------------------------------------------
 stop(_State) ->
     ok.
+
+
+%%%
+%%% Priv
+%%%
+start_listeners([]) ->
+    ok;
+
+start_listeners([ L | Tail ]) ->
+    case erocci_listeners:add(L) of
+	{ok, Pid} ->
+	    ?info("Started listener ~p: ~p", [erocci_listener:id(L), Pid]),
+	    start_listeners(Tail);
+	{error, _}=Err ->
+	    Err
+    end.
