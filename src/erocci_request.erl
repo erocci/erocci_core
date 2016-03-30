@@ -12,9 +12,9 @@
 %%% @end
 %%% Created : 11 Jan 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_request).
+-module(erocci_request).
 
--include("occi.hrl").
+-include("erocci.hrl").
 
 -export([new/0,
 	 add_entity/2,

@@ -11,11 +11,11 @@
 %%%
 %%% @end
 %%% Created :  1 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_backend_dummy).
+-module(erocci_backend_dummy).
 
--behaviour(occi_backend).
+-behaviour(erocci_backend).
 
--include("occi.hrl").
+-include("erocci.hrl").
 
 %% occi_backend callbacks
 -export([init/1,
@@ -40,13 +40,13 @@ terminate(#state{}) ->
     ok.
 
 save(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
-		      is_record(Obj, occi_mixin) ->
+					       is_record(Obj, occi_mixin) ->
     ?info("[~p] save(~p)~n", [Id, Obj]),
     timer:sleep(Wait),
     {ok, State}.
 
 delete(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
-			is_record(Obj, occi_mixin) ->
+						 is_record(Obj, occi_mixin) ->
     ?info("[~p] delete(~p)~n", [Id, Obj]),
     timer:sleep(Wait),
     {ok, State}.
@@ -57,7 +57,7 @@ update(#state{id=Id, wait=Wait}=State, #occi_node{}=Node) ->
     {ok, State}.
 
 find(#state{id=Id, wait=Wait}=State, Obj) when is_record(Obj, occi_node);
-				    is_record(Obj, occi_mixin) ->
+					       is_record(Obj, occi_mixin) ->
     ?info("[~p] find(~p)~n", [Id, Obj]),
     timer:sleep(Wait),
     {{ok, []}, State}.

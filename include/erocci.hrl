@@ -4,12 +4,11 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--ifndef(occi_hrl).
--define(occi_hrl, true).
+-ifndef(erocci_hrl).
+-define(erocci_hrl, true).
 
--include("occi_log.hrl").
--include("occi_model_store.hrl"). 
--include("occi_acl.hrl").
+-include("erocci_log.hrl").
+-include("erocci_acl.hrl").
 
 -define(xmlschema_ns, 'http://www.w3.org/2001/XMLSchema').
 

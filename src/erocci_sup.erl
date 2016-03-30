@@ -9,8 +9,9 @@
 %%% 
 
 %% @doc Supervisor for the occi core application.
+%% @end
 
--module(occi_sup).
+-module(erocci_sup).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
 
 -behaviour(supervisor).
@@ -33,34 +34,28 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init(_) ->
-    TableMgr = {occi_table_mgr,
-		{occi_table_mgr, start_link, []},
+    TableMgr = {erocci_table_mgr,
+		{erocci_table_mgr, start_link, []},
 		permanent,
 		infinity,
-		worker,[occi_table_mgr]},
-    Config = {occi_config,
-	     {occi_config, start_link, []},
+		worker,[erocci_table_mgr]},
+    Config = {erocci_config,
+	      {erocci_config, start_link, []},
+	      permanent,
+	      infinity,
+	      supervisor,
+	      [erocci_config]},
+    Store = {erocci_store,
+	     {erocci_store, start_link, []},
 	     permanent,
 	     infinity,
 	     supervisor,
-	     [occi_config]},
-    Store = {occi_store,
-	     {occi_store, start_link, []},
-	     permanent,
-	     infinity,
-	     supervisor,
-	     [occi_store]},
-    Listener = {occi_listener,
-		{occi_listener, start_link, []},
+	     [erocci_store]},
+    Listener = {erocci_listener,
+		{erocci_listener, start_link, []},
 		permanent,
 		infinity,
 		supervisor,
-		[occi_listener]},
-    Hook = {occi_hook,
-	    {occi_hook, start_link, []},
-	    permanent,
-	    infinity,
-	    worker,
-	    [occi_hook]},
-    Children = [TableMgr, Config, Store, Listener, Hook],
+		[erocci_listener]},
+    Children = [TableMgr, Config, Store, Listener],
     {ok, {{one_for_one, 10, 10}, Children}}.

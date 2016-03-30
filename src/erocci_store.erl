@@ -25,9 +25,9 @@
 %%% @end
 %%% Created : 18 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_store).
+-module(erocci_store).
 
--include("occi.hrl").
+-include("erocci.hrl").
 
 -behaviour(supervisor).
 
@@ -396,37 +396,37 @@ delete(_Node) ->
     {error, 500}.
 
 load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=entity}=Cid, 
-						   type=occi_collection, data=undefined}=Node, Opts) ->
+			   type=occi_collection, data=undefined}=Node, Opts) ->
     ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
     Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}),
-				   occi_kind:get_id(K) =/= ?cid_entity,
-				   occi_kind:get_id(K) =/= ?cid_resource,
-				   occi_kind:get_id(K) =/= ?cid_link  ],
-	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+		   occi_kind:get_id(K) =/= ?cid_entity,
+		   occi_kind:get_id(K) =/= ?cid_resource,
+		   occi_kind:get_id(K) =/= ?cid_link  ],
+    ?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
     Coll = load_core_collection(Node, Kinds, Cid, Opts),
     {ok, Node#occi_node{data=Coll}};
 
 load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=resource}=Cid, 
-						   type=occi_collection, data=undefined}=Node, Opts) ->
+			   type=occi_collection, data=undefined}=Node, Opts) ->
     ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
     Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}), 
-				   occi_kind:parent(K) =:= ?cid_resource,
-				   occi_kind:get_id(K) =/= ?cid_entity,
-				   occi_kind:get_id(K) =/= ?cid_resource,
-				   occi_kind:get_id(K) =/= ?cid_link ],
-	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+		   occi_kind:parent(K) =:= ?cid_resource,
+		   occi_kind:get_id(K) =/= ?cid_entity,
+		   occi_kind:get_id(K) =/= ?cid_resource,
+		   occi_kind:get_id(K) =/= ?cid_link ],
+    ?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
     Coll = load_core_collection(Node, Kinds, Cid, Opts),
     {ok, Node#occi_node{data=Coll}};
 
 load_collection(#occi_node{objid=#occi_cid{scheme=?scheme_core, term=link}=Cid, 
-						   type=occi_collection, data=undefined}=Node, Opts) ->
+			   type=occi_collection, data=undefined}=Node, Opts) ->
     ?debug("occi_store:load_collection(~p, ~p)~n", [Node, Opts]),
     Kinds = [ K || K <- occi_category_mgr:find(#occi_cid{_='_', class=kind}), 
-				   occi_kind:parent(K) =:= ?cid_link,
-				   occi_kind:get_id(K) =/= ?cid_entity,
-				   occi_kind:get_id(K) =/= ?cid_resource,
-				   occi_kind:get_id(K) =/= ?cid_link ],
-	?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
+		   occi_kind:parent(K) =:= ?cid_link,
+		   occi_kind:get_id(K) =/= ?cid_entity,
+		   occi_kind:get_id(K) =/= ?cid_resource,
+		   occi_kind:get_id(K) =/= ?cid_link ],
+    ?debug("<2>kinds: ~p", [ [occi_kind:get_id(Kind) || Kind <- Kinds] ]),
     Coll = load_core_collection(Node, Kinds, Cid, Opts),
     {ok, Node#occi_node{data=Coll}};
 
@@ -632,7 +632,7 @@ load_links(#occi_node{data=#occi_resource{}=R}=N, Opts, Ctx) ->
 			Acc
 		end;
 	    (#occi_link{}=Link, Acc) ->
-		    [ Link | Acc ]
+		[ Link | Acc ]
 	end,
     Links = lists:foldl(F, [], occi_resource:get_links(R)),
     {ok, N#occi_node{data=occi_resource:links(R, Links)}}.

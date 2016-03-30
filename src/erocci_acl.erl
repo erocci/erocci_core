@@ -13,9 +13,9 @@
 %%% @end
 %%% Created : 15 May 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_acl).
+-module(erocci_acl).
 
--include("occi.hrl").
+-include("erocci.hrl").
 
 -export([check/4]).
 

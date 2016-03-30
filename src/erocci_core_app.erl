@@ -13,7 +13,7 @@
 %%% @end
 %%% Created :  6 Aug 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 %%%-------------------------------------------------------------------
--module(occi_core_app).
+-module(erocci_core_app).
 
 -behaviour(application).
 
@@ -41,7 +41,7 @@
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    case occi_sup:start_link() of
+    case erocci_sup:start_link() of
         {error, Err} ->
             {error, Err};
         {ok, Pid} ->

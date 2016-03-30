@@ -9,9 +9,10 @@
 %%% 
 
 %% @doc 
--module(occi_table_mgr).
+%% @end
+-module(erocci_table_mgr).
 
--include("occi_log.hrl").
+-include("erocci_log.hrl").
 
 -export([start_link/0,
 	 new/2,

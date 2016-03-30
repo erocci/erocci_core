@@ -4,8 +4,8 @@
 %%%
 %%% @end
 %%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--ifndef(occi_acl_hrl).
--define(occi_acl_hrl, true).
+-ifndef(erocci_acl_hrl).
+-define(erocci_acl_hrl, true).
 
 -type(acl() :: {acl_policy(), acl_op(), acl_node(), acl_user()}).
 

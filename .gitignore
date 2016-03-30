@@ -1,8 +1,6 @@
 *.beam
 *~
-/src/occi_scanner_json.erl
 /.erlang.mk
 /deps
 /ebin
 /erocci_core.d
-/src/erocci_core.app.src

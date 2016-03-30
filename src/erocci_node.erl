@@ -11,9 +11,9 @@
 %%%
 %%% @end
 %%% Created : 24 Jan 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_node).
+-module(erocci_node).
 
--include("occi.hrl").
+-include("erocci.hrl").
 
 -export([new/2,
          id/1,

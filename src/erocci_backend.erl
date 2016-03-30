@@ -11,10 +11,10 @@
 %%%
 %%% @end
 %%% Created :  1 Jul 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
--module(occi_backend).
+-module(erocci_backend).
 -behaviour(gen_server).
 
--include("occi.hrl").
+-include("erocci.hrl").
 %% API
 -export([start_link/1]).
 -export([update/2,

@@ -1,0 +1,19 @@
+%%-*- mode: erlang -*-
+{application, erocci_core,
+ [
+  {id, ""},
+  {description, "erocci framework Core"},
+  {mod, {erocci_core_app, []}},
+  {modules, []},
+  {applications, 
+   [
+    kernel,
+    stdlib,
+    sasl,
+    inets,
+    cowboy,
+    erocci_authnz
+   ]},
+  {registered, []},
+  {env, []}
+ ]}.
