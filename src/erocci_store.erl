@@ -32,13 +32,22 @@
 	 action/4,
 	 update/3]).
 
+%%-record(tag, { id       :: occi_category:id(),
+%%	         creds    :: erocci_creds:t() }).
+
+%%-type tag() :: #tag{}.
+
 -type store_error() :: not_found
 		     | method_not_allowed
 		     | forbidden
 		     | conflict
 		     | {unauthorized, binary()}.
 
--type errors() :: store_error().
+-type errors() :: store_error() 
+		| erocci_backend:errors()
+		| occi_rendering:parse_error().
+
+-export_type([errors/0]).
 
 %% @doc Return map of location -> bounded collections
 %% @end
@@ -64,34 +73,33 @@ capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
     auth(read, Creds, Node, fun () -> {ok, Categories} end).
 
 
-%% @doc Delete a user-defined mixin
+%% @doc Add a user-defined mixin
 %% @end
--spec delete_mixin(maps:map(), erocci_creds:t()) -> ok | {error, errors()}.
-delete_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
-    try occi_category_id:from_map(Map) of
-	Id ->
-	    Node = erocci_node:capabilities([Id]),
-	    Success = fun () ->
-			      erocci_backend:delete_mixin(Id)
+-spec new_mixin(maps:map(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, errors()}.
+new_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
+    try occi_mixin:from_map(Map) of
+	Mixin ->
+	    Node = erocci_node:capabilities([Mixin]),
+	    Success = fun() ->
+			      new_mixin2(Mixin)
 		      end,
-	    auth(delete, Creds, Node, Success)
+	    auth(create, Creds, Node, Success)
     catch throw:Err ->
 	    Err
     end.
 
 
-%% @doc Add a user-defined mixin
+%% @doc Delete a user-defined mixin
 %% @end
--spec new_mixin(maps:map(), erocci_creds:t()) -> ok | {error, errors()}.
-new_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
-    try occi_mixin:from_map(Map, client) of
-	Mixin ->
-	    Node = erocci_node:capabilities([Mixin]),
-	    Success = fun() ->
-			      Backend = erocci_backends:by_path(occi_mixin:location(Mixin)),
-			      erocci_backend:add_mixin(Backend, Mixin)
+-spec delete_mixin(maps:map(), erocci_creds:t()) -> ok | {error, errors()}.
+delete_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
+    try occi_category:id_from_map(Map) of
+	Id ->
+	    Node = erocci_node:capabilities([Id]),
+	    Success = fun () ->
+			      delete_mixin2(Id)
 		      end,
-	    auth(create, Creds, Node, Success)
+	    auth(delete, Creds, Node, Success)
     catch throw:Err ->
 	    Err
     end.
@@ -193,14 +201,12 @@ remove_mixin(Mixin, Obj, Creds) ->
 %% @end
 -spec create(occi_category:t() | binary(), maps:map(), erocci_creds:t()) -> 
 		    {ok, occi_entity:t()} | {error, errors()}.
-create(PathOrCategory, Obj, Creds) when is_binary(PathOrCategory);
-					?is_category(PathOrCategory) ->
-    try	occi_entity:from_map(PathOrCategory, Obj) of
-	Entity ->
-	    create2(occi_type:type(Entity), Entity, Creds)
-    catch throw:Err ->
-	    Err
-    end.
+create(Path, Obj, Creds) when is_binary(Path) ->
+    create(Path, Obj, Creds, fun () -> erocci_backends:by_path(Path) end);
+
+create(Category, Obj, Creds) when ?is_category(Category) ->
+    Id = occi_category:id(Category),
+    create(Category, Obj, Creds, fun () -> erocci_backends:by_category_id(Id) end).
 
 
 %% @doc Retrieve an entity or unbounded collection
@@ -209,9 +215,9 @@ create(PathOrCategory, Obj, Creds) when is_binary(PathOrCategory);
 -spec get(binary(), erocci_creds:t(), erocci_filter:t(), integer(), integer() | undefined) -> 
 		 {ok, occi_entity:t() | occi_collection:t()} | {error, errors()}.
 get(Path, Creds, Filter, Page, Number) when is_binary(Path),
-					       ?is_filter(Filter),
-					       is_integer(Page),
-					       Number =:= undefined orelse is_integer(Number) ->
+					    ?is_filter(Filter),
+					    is_integer(Page),
+					    Number =:= undefined orelse is_integer(Number) ->
     entity(Path, Creds, read).
 
 
@@ -277,16 +283,42 @@ entity(Path, Creds, Op) ->
     end.
 
 
+usermixin(Id) ->
+    occi_category:category(Id).
+
+
+new_mixin2(Mixin) ->
+    case usermixin(occi_category:id(Mixin)) of
+	undefined ->
+	    case occi_models:add_category(Mixin) of
+		ok -> {ok, Mixin};
+		{error, _}=Err -> Err
+	    end;
+	Mixin2 ->
+	    %% Ignore duplicate mixins
+	    {ok, Mixin2}
+    end.
+
+
+delete_mixin2(Id) ->
+    case usermixin(Id) of
+	undefined ->
+	    {error, not_found};
+	_Mixin ->
+	    occi_models:rm_category(Id)
+    end.
+    
+
 action2(Invoke, Entity) ->
     Backend = erocci_backends:by_path(occi_entity:id(Entity)),
     erocci_backend:action(Backend, Invoke, Entity).
 
 
 update2(Entity, Obj) ->
-    try occi_entity:update(Obj, Entity) of
-	Entity2 ->
+    try occi_entity:update_from_map(Obj, Entity) of
+	_Entity2 ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
-	    erocci_backend:update(Backend, Entity2)
+	    erocci_backend:update(Backend, Entity, maps:get(attributes, Obj), #{})
     catch throw:Err ->
 	    Err
     end.
@@ -402,18 +434,23 @@ apply_collection([ Id | Tail ], Creds, MixinId, Fun, ok) ->
     end.
 
 
-create2(resource, Resource, Creds) ->
+create(PathOrCategory, Obj, Creds, BackendFun) ->
+    try	occi_entity:from_map(PathOrCategory, Obj) of
+	Entity -> create2(occi_type:type(Entity), Entity, Creds, BackendFun)
+    catch throw:Err -> Err
+    end.
+
+
+create2(resource, Resource, Creds, BackendFun) ->
     Success = fun () ->
-		      Backend = erocci_backends:by_path(occi_resource:id(Resource)),
-		      erocci_backend:create(Backend, Resource),
+		      erocci_backend:create(BackendFun(), Resource),
 		      create_resource_links(occi_resource:links(Resource), Creds, {ok, Resource})
 	      end,
     auth(create, Creds, erocci_node:entity(Resource), Success);
 
-create2(link, Link, Creds) ->
+create2(link, Link, Creds, BackendFun) ->
     Success = fun () ->
-		      Backend = erocci_backends:by_path(occi_link:id(Link)),
-		      erocci_backend:create(Backend, Link)
+		      erocci_backend:create(BackendFun(), Link)
 	      end,
     auth(create, Creds, erocci_node:entity(Link), Success).
 
@@ -425,7 +462,13 @@ create_resource_links([], _Creds, {ok, _}=Ret) ->
     Ret;
 
 create_resource_links([ Link | Links ], Creds, _Acc) ->
-    create_resource_links(Links, Creds, create2(link, Link, Creds)).
+    BackendFun = case occi_link:url(Link) of
+		     undefined ->
+			 fun () -> erocci_backends:by_category_id(occi_link:kind(Link)) end;
+		     Url ->
+			 fun () -> erocci_backends:by_path(Url) end
+		 end,			 
+    create_resource_links(Links, Creds, create2(link, Link, Creds, BackendFun)).
 
 
 %%auth(Op, Creds, Node) ->
@@ -439,7 +482,7 @@ auth(Op, Creds, Node, Success) ->
 
 
 auth(Op, Creds, Node, Success, Fail) ->
-    case auth2(erocci_acl:check(Op, Node, Creds), Creds) of
+    case auth2(erocci_acls:check(Op, Node, Creds), Creds) of
 	ok ->
 	    Success();
 	{error, _}=Err ->

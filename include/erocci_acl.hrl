@@ -1,18 +1,22 @@
-%%% @author Jean Parpaillon <jean.parpaillon@free.fr>
-%%% @copyright (c) 2013-2016 Jean Parpaillon
-%%% @doc Created from https://github.com/dizz/occi-grammar/blob/master/occi-antlr-grammar/Occi.g
-%%%
-%%% @end
-%%% Created : 14 Mar 2013 by Jean Parpaillon <jean.parpaillon@free.fr>
 -ifndef(erocci_acl_hrl).
 -define(erocci_acl_hrl, true).
 
--type(acl() :: {acl_policy(), acl_op(), acl_node(), acl_user()}).
+-type policy() :: allow | deny.
 
--type(acl_policy() :: allow | deny).
--type(acl_op() :: create | read | update | {action, binary() } | delete | '_').
--type(acl_node() :: capabilities | acl_url()).
--type(acl_url() :: binary()).
--type(acl_user() :: anonymous | authenticated | admin | owner | group | {group, binary() } | '_').
+-type op() :: create 
+	    | read
+	    | update
+	    | {action, occi_category:id()}
+	    | delete.
+
+-type location() :: binary() | query.
+
+-type identity() :: owner
+		  | {user, erocci_creds:user()}
+		  | group
+		  | {group, erocci_creds:group()}
+		  | authenticated.
+
+-type t() :: {policy(), op(), location(), identity()}.
 
 -endif.

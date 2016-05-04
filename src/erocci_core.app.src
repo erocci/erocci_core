@@ -6,7 +6,8 @@
   {mod, {application_starter, [erocci_core, []]}},
   {modules, []},
   {start_phases, [
-		  {config, []}
+		  {backends, []}
+		 ,{listeners, []}
 		 ]},
   {applications, 
    [
@@ -14,9 +15,8 @@
     stdlib,
     sasl,
     inets,
-    cowboy,
-    occi,
-    erocci_authnz
+    mensia,
+    occi
    ]},
   {registered, []},
   {env, 

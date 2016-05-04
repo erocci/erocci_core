@@ -7,9 +7,12 @@
 
 -module(erocci_filter).
 
+-include_lib("occi/include/occi_types.hrl").
+
 -export([new/0,
 	 add_eq/3,
-	 add_like/3]).
+	 add_like/3,
+	 match/2]).
 
 -type key() :: binary() | '_'.
 -type value() :: term().
@@ -41,3 +44,19 @@ add_eq(Key, Value, Filters) ->
 -spec add_like(key(), value(), t()) -> t().
 add_like(Key, Value, Filters) ->
     [ {like, Key, Value} | Filters ].
+
+
+%% @doc Return true if Object match filter, false otherwise
+%% @todo Implements filtering (always returns true)
+%% @end
+-spec match(occi_type:t(), t()) -> boolean().
+match(_Obj, []) ->
+    true;
+
+match(_Obj, _Filter) ->
+    true.
+
+
+%%%
+%%% Priv
+%%%

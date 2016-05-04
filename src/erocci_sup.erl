@@ -34,11 +34,16 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init(_) ->
-    Listeners = {erocci_listeners,
-		 {erocci_listeners, start_link, []},
-		 permanent,
-		 infinity,
-		 supervisor,
-		 [erocci_listeners]},
-    Children = [Listeners],
+    Acls = #{ id => erocci_acls,
+	      start => {erocci_acls, start_link, []},
+	      type => worker },
+    Listeners = #{ id => erocci_listeners,
+		   start => {erocci_listeners, start_link, []},
+		   type => supervisor
+		 },
+    Backends = #{ id => erocci_backends,
+		  start => {erocci_backends, start_link, []},
+		  type => supervisor
+		},
+    Children = [Acls, Listeners, Backends],
     {ok, {{one_for_one, 10, 10}, Children}}.

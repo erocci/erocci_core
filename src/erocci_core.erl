@@ -60,9 +60,11 @@ start(_StartType, _StartArgs) ->
 %% supervisors have been started
 %% @end
 -spec start_phase(Phase :: atom(), Type :: atom(), Args :: term()) -> ok | {error, term()}.
-start_phase(config, normal, _Args) ->
-    Ret = start_listeners(erocci_config:get(listeners)),
-    Ret;
+start_phase(listeners, normal, _Args) ->
+    start_listeners(erocci_config:get(listeners));
+
+start_phase(backends, normal, _Args) ->
+    start_backends(erocci_config:get(backends), false);
 
 start_phase(_, _, _) ->
     ok.
@@ -93,6 +95,36 @@ start_listeners([ L | Tail ]) ->
 	{ok, Pid} ->
 	    ?info("Started listener ~p: ~p", [erocci_listener:id(L), Pid]),
 	    start_listeners(Tail);
+	{error, _}=Err ->
+	    Err
+    end.
+
+
+start_backends([], true) ->
+    ok;
+
+start_backends([], false) ->
+    ?info("No root backend, mount default one"),
+    %%start_backends2(erocci_backend:default(), [], true);
+    ok;
+
+start_backends([ B | Tail ], true) ->
+    case erocci_backend:is_root(B) of
+	true ->
+	    {error, dulicate_root_backend};
+	false ->
+	    start_backends2(B, Tail, true)
+    end;
+
+start_backends([ B | Tail ], false) ->
+    start_backends2(B, Tail, erocci_backend:is_root(B)).
+
+
+start_backends2(Backend, Others, Root) ->
+    case erocci_backends:mount(Backend) of
+	{ok, _Pid} ->
+	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend), erocci_backend:path(Backend)]),
+	    start_backends(Others, Root);
 	{error, _}=Err ->
 	    Err
     end.

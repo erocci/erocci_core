@@ -7,7 +7,7 @@
 
 -module(erocci_listener).
 
--export([new/3,
+-export([new/1,
 	 id/1,
 	 spec/1]).
 
@@ -21,10 +21,14 @@
 
 
 %% @doc Create a listener structure
+%% @throw {listener, term()}
 %% @end
--spec new(Ref :: atom(), Handler :: atom(), Opts :: term()) -> t().
-new(Ref, Handler, Opts) ->
-    #listener{ id=Ref, handler=Handler, opts=Opts}.
+-spec new({Ref :: atom(), Handler :: atom(), Opts :: term()}) -> t().
+new({Ref, Handler, Opts}) when is_atom(Handler) ->
+    #listener{ id=Ref, handler=Handler, opts=Opts};
+
+new(Else) ->
+    throw({listener, Else}).
 
 
 %% @doc Get listener ref
@@ -36,9 +40,8 @@ id(#listener{ id=Id }) ->
 
 %% @doc Get listener desc as child spec
 %% @end
--spec spec(t()) -> suervisor:child_spec().
+-spec spec(t()) -> supervisor:child_spec().
 spec(#listener{ id=Id, handler=Handler, opts=Opts }) ->
-    {Id, 
-     {Handler, start_link, [Id, Opts]},
-     permanent, 2000, worker,
-     [Handler]}.
+    #{ id => Id,
+       start => {Handler, start_link, [Id, Opts]} 
+     }.

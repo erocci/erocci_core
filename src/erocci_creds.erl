@@ -14,7 +14,9 @@
 
 -export([is_authenticated/1,
 	 challenge/1,
-	 type/1]).
+	 type/1,
+	 user/1,
+	 group/1]).
 
 
 -type type() :: basic 
@@ -26,16 +28,16 @@
 		 data             :: term() }).
 -type t() :: #creds{}.
 
--type owner() :: binary().
--type group() :: binary().
+-type user() :: binary() | admin | anonymous.
+-type group() :: binary() | admin | anonymous.
 
--export_type([t/0, owner/0, group/0]).
+-export_type([t/0, user/0, group/0]).
 
 %% @doc Basic authentication, with authentication
 %% WARNING: implements hard coded user/password
 %% @todo implements real authentication with erocci_authnz (or PAM ?)
 %% @end
--spec basic(User :: owner(), Password :: binary(), Challenge :: fun()) -> t().
+-spec basic(User :: user(), Password :: binary(), Challenge :: fun()) -> t().
 basic(<<"erocci">>, <<"erocci">>, Challenge) ->
     #creds{ type=basic, challenge=Challenge, authenticated=true };
 
@@ -79,3 +81,17 @@ challenge(#creds{ type=anonymous }) ->
 
 challenge(#creds{ type=basic, challenge=Challenge }=Creds) ->
     Challenge(Creds).
+
+
+%% @doc Get request user
+%% @end
+-spec user(t()) -> user().
+user(#creds{ data=Data }) ->
+    maps:get(user, Data, anonymous).
+
+
+%% @doc Get request group
+%% @end
+-spec group(t()) -> group().
+group(#creds{ data=Data }) ->
+    maps:get(group, Data, anonymous).

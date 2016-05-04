@@ -51,7 +51,7 @@ start_link() ->
 %% @end
 -spec add(occi_listener:t()) -> {ok, pid()} | {error, term()}.
 add(L) ->
-    supervisor:start_child(?SUPERVISOR, occi_listener:spec(L)).
+    supervisor:start_child(?SUPERVISOR, erocci_listener:spec(L)).
 
 
 %%%===================================================================

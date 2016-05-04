@@ -19,13 +19,14 @@
 -export([start_link/0,
 	 mount/1,
 	 umount/1,
-	 find/1]).
+	 by_path/1,
+	 by_category_id/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 -define(SUPERVISOR, ?MODULE).
--define(TID, ?MODULE).
+-define(BY_PATH_TID, path_tid).
 
 %%%===================================================================
 %%% API functions
@@ -65,11 +66,19 @@ umount(Backend) ->
 
 %% @doc Find backend attached to mountpoint
 %% @end
--spec find(binary()) -> erocci_backend:t().
-find(Path) when is_binary(Path) ->
+-spec by_path(binary()) -> erocci_backend:t().
+by_path(Path) when is_binary(Path) ->
     SplittedPath = binary:split(Path, [<<$/>>], [global, trim_all]),
-    find2(SplittedPath, ets:last(?TID)).
+    find2(SplittedPath, ets:last(?BY_PATH_TID)).
 
+
+%% @doc Find backends handling category id
+%% So far, returns all backends
+%% @todo
+%% @end
+-spec by_category_id(occi_category:id()) -> erocci_backend:t().
+by_category_id(Id) ->
+    find_category_id(Id, ets:first(?BY_PATH_TID)).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -90,36 +99,58 @@ find(Path) when is_binary(Path) ->
 %%--------------------------------------------------------------------
 init(_) ->
     ?info("Starting erocci backends manager"),
-    ?TID = ets:new(?TID, [ordered_set,
-			  {read_concurrency, true},
-			  public,
-			  named_table
-			 ]),
+    ?BY_PATH_TID = ets:new(?BY_PATH_TID, [ordered_set,
+					  {read_concurrency, true},
+					  public,
+					  named_table
+					 ]),
     {ok, {{one_for_one, 1000, 6000}, []}}.
 
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-
-%% Backends are stored by path length
 add_backend(Backend) ->
     Depth = erocci_backend:depth(Backend),
-    SameDepthBackends = case ets:lookup(?TID, Depth) of
+    SameDepthBackends = case ets:lookup(?BY_PATH_TID, Depth) of
 			    [] -> #{};
 			    [{_, Backends}] -> Backends
 			end,
-    true = ets:insert(?TID, {Depth, SameDepthBackends#{ erocci_backend:mountpoint(Backend) => Backend }}),
+    true = ets:insert(?BY_PATH_TID, {Depth, SameDepthBackends#{ erocci_backend:mountpoint(Backend) => Backend }}),
     ok.
 
 
 rm_backend(Backend) ->
     Depth = erocci_backend:depth(Backend),
-    case ets:lookup(?TID, Depth) of
+    case ets:lookup(?BY_PATH_TID, Depth) of
 	[] -> 
 	    {error, not_found};
 	[{_, SameDepthBackends}] ->
-	    true = ets:insert(?TID, {Depth, maps:remove(erocci_backend:mountpoint(Backend), SameDepthBackends)}),
+	    true = ets:insert(?BY_PATH_TID, {Depth, maps:remove(erocci_backend:mountpoint(Backend), SameDepthBackends)}),
 	    ok
+    end.
+
+
+find_category_id(Id, '$end_of_table') ->
+    throw({unhandled_category, Id});
+
+find_category_id(Id, Key) ->
+    [Map] = ets:lookup(?BY_PATH_TID, Key),
+    case find_category_id2(Id, maps:keys(Map), Map) of
+	undefined ->
+	    find_category_id(Id, ets:next(?BY_PATH_TID, Key));
+	Backend ->
+	    Backend
+    end.
+		 
+
+find_category_id2(_Id, [], _Map) ->
+    undefined;
+
+find_category_id2(Id, [ Key | Tail ], Map) ->
+    Backend = maps:get(Key, Map),
+    case erocci_backend:has_category(Id, Backend) of
+	true -> Backend;
+	false -> find_category_id2(Id, Tail, Map)
     end.
 
 
@@ -127,16 +158,16 @@ find2(_, '$end_of_table') ->
     throw({backend, no_root});
 
 find2(_Path, 0) ->
-    #{ [] := Root } = ets:lookup_element(?TID, 0, 2),
+    #{ [] := Root } = ets:lookup_element(?BY_PATH_TID, 0, 2),
     Root;
 
 find2(Path, Depth) ->
-    case ets:lookup(?TID, Depth) of
+    case ets:lookup(?BY_PATH_TID, Depth) of
 	[] ->
-	    find2(Path, ets:prev(?TID, Depth));
+	    find2(Path, ets:prev(?BY_PATH_TID, Depth));
 	[{_, Backends}] ->
 	    case lookup(lists:sublist(Path, Depth), maps:keys(Backends), Backends) of
-		false -> find2(Path, ets:prev(?TID, Depth));
+		false -> find2(Path, ets:prev(?BY_PATH_TID, Depth));
 		Backend -> Backend
 	    end
     end.

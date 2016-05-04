@@ -13,144 +13,116 @@
 %%% Created : 24 Jan 2014 by Jean Parpaillon <jean.parpaillon@free.fr>
 -module(erocci_node).
 
--include("erocci.hrl").
+-include_lib("occi/include/occi_types.hrl").
 
--export([new/2,
-         id/1,
-         get_objid/1,
-         objid/1,
-         get_type/1,
-         type/1,
-         set_type/2,
-         get_parent/1,
-         get_data/1,
-         data/1,
-         set_data/2,
-         data/2,
-         owner/1,
-         add_prefix/2,
-         rm_prefix/2]).
+-export([capabilities/1,
+	 entity/1,
+	 type/1,
+	 location/1,
+	 data/1,
+	 data/2,
+	 owner/1,
+	 owner/2,
+	 group/1,
+	 group/2]).
+
+
+-type type() :: capabilities
+	      | {collection, kind}
+	      | {collection, mixin}
+	      | entity.
+
+
+-type t() :: #{}.
+
+-export_type([t/0]).
 
 %%%
 %%% API
 %%%
--spec new(occi_node_id(), occi_node_type() | occi_object()) -> occi_node().
-new(#uri{path=Path}, #occi_backend{ref=Ref}=Backend)  ->
-    NormPath = "/" ++ string:join(string:tokens(Path, "/"), "/"),
-    #occi_node{id=#uri{path=NormPath}, objid=Ref, type=mountpoint, data=Backend};
 
-new(#uri{path=Path}, #occi_resource{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_resource, data=Data};
-
-new(#uri{path=Path}, #occi_link{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_link, data=Data};
-
-new(#uri{path=Path}, #occi_mixin{id=Id}=Data)  ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=capabilities, data=Data};
-
-new(#uri{path=Path}, #occi_cid{}=Cid) ->
-    #occi_node{id=#uri{path=Path}, objid=Cid, type=occi_collection, data=undefined};
-
-new(#uri{path=Path}, #occi_collection{id=Id}=Coll) ->
-    #occi_node{id=#uri{path=Path}, objid=Id, type=occi_collection, data=Coll};
-
-new(#uri{path=Path}, Type) when is_atom(Type) ->
-    #occi_node{id=#uri{path=Path}, type=Type};
-
-new(#occi_resource{id=#uri{path=Path}}=Data, Owner) ->
-    #occi_node{id=#uri{path=Path}, objid=undefined, type=occi_resource, owner=Owner, 
-               data=Data#occi_resource{id=undefined}};
-
-new(#occi_link{id=#uri{path=Path}}=Data, Owner) ->
-    ObjId = make_ref(),
-    #occi_node{id=#uri{path=Path}, objid=ObjId, type=occi_link, owner=Owner, 
-               data=Data#occi_link{id=ObjId}};
-
-new(#occi_mixin{id=ObjId, location=#uri{path=Path}}=Data, Owner) ->
-    #occi_node{id=#uri{path=Path}, objid=ObjId, type=capabilities, owner=Owner, data=Data}.
+%% @doc Creates a capabilities node
+%% @end
+-spec capabilities([occi_category:t()]) -> t().
+capabilities(Categories) ->
+    #{ type => capabilities,
+       data => Categories,
+       location => <<"/-/">>
+     }.
 
 
--spec id(occi_node()) -> uri().
-id(#occi_node{id=Id}) ->
-    Id.
+%% @doc Creates an entity node
+%% @end
+-spec entity(occi_entity:t() | binary()) -> t().
+entity(Path) when is_binary(Path) ->
+    #{ type => entity,
+       id => Path,
+       data => undefined,
+       location => Path };
 
--spec get_objid(occi_node()) -> any().
-get_objid(#occi_node{objid=Id}) ->
-    Id.
-objid(#occi_node{objid=Id}) ->
-    Id.
+entity(Entity) when ?is_entity(Entity) ->
+    Id = occi_entity:id(Entity),
+    #{ type => entity,
+       id => Id,
+       data => Entity,
+       location => Id
+     }.
 
--spec get_type(occi_node()) -> occi_node_type().
-get_type(#occi_node{type=Type}) ->
+
+%% @doc Get node type
+%% @end
+-spec type(t()) -> type().
+type(#{ type := Type }) ->
     Type.
 
--spec type(occi_node()) -> occi_node_type().
-type(#occi_node{type=Type}) ->
-    Type.
 
--spec set_type(occi_node(), occi_node_type()) -> occi_node().
-set_type(#occi_node{}=Node, Type) ->
-    Node#occi_node{type=Type}.
+%% @doc Get node data
+%% @end
+-spec data(t()) -> occi_type:t().
+data(#{ data := Data }) ->
+    Data;
 
--spec get_parent(occi_node()) -> uri().
-get_parent(#occi_node{id=Id}) ->
-    occi_uri:get_parent(Id).
+data(_) ->
+    undefined.
 
--spec get_data(occi_node()) -> term().
-get_data(#occi_node{data=Data}) ->
-    Data.
 
--spec data(occi_node()) -> term().
-data(#occi_node{data=Data}) ->
-    Data.
+%% @doc Set node data
+%% @end
+-spec data(term(), t()) -> t().
+data(Data, Node) ->
+    Node#{ data => Data }.
 
--spec set_data(occi_node(), term()) -> occi_node().
-set_data(#occi_node{type=occi_resource}=Node, #occi_resource{}=Data) ->
-    Node#occi_node{data=Data};
-set_data(#occi_node{type=occi_link}=Node, #occi_link{}=Data) ->
-    Node#occi_node{data=Data};
-set_data(#occi_node{type=occi_mixin}=Node, #occi_mixin{}=Data) ->
-    Node#occi_node{data=Data};
-set_data(#occi_node{type=occi_user_mixin}=Node, #occi_mixin{}=Data) ->
-    Node#occi_node{data=Data};
-set_data(#occi_node{type=occi_entity}=Node, #occi_resource{}=Data) ->
-    Node#occi_node{type=occi_resource, data=Data};
-set_data(#occi_node{type=occi_entity}=Node, #occi_link{}=Data) ->
-    Node#occi_node{type=occi_link, data=Data};
-set_data(#occi_node{type=Type}, _) ->
-    throw({invalid_data_type, Type}).
 
-data(Node, Data) ->
-    set_data(Node, Data).
+%% @doc Get node location
+%% @end
+-spec location(t()) -> binary().
+location(#{ location := Location }) ->
+    Location.
 
--spec owner(occi_node()) -> term().
-owner(#occi_node{owner=Owner}) ->
-    Owner.
 
--spec add_prefix(occi_node(), list()) -> occi_node().
-add_prefix(#occi_node{id='_'}=Node, _) ->
-    Node;
+%% @doc Get node owner
+%% @end
+-spec owner(t()) -> erocci_creds:user().
+owner(N) ->
+    maps:get(owner, N, anonymous).
 
-add_prefix(#occi_node{id=#uri{}=Id, data=Data}=Node, Prefix) when is_list(Prefix) ->
-    N = Node#occi_node{id=occi_uri:add_prefix(Id, Prefix)},
-    N#occi_node{data=case Data of
-                         #occi_resource{}=R -> occi_resource:add_prefix(R, Prefix);
-                         #occi_link{}=L -> occi_link:add_prefix(L, Prefix);
-                         #occi_mixin{}=M -> occi_mixin:add_prefix(M, Prefix);
-                         #occi_collection{}=C -> occi_collection:add_prefix(C, Prefix);
-                         _ -> Data
-                     end}.
 
--spec rm_prefix(occi_node(), list()) -> occi_node().
-rm_prefix(#occi_node{id='_'}=Node, _) ->
-    Node;
+%% @doc Set node owner
+%% @end
+-spec owner(erocci_creds:t(), t()) -> t().
+owner(Owner, N) when is_binary(Owner); anonyous =:= Owner ->
+    N#{ owner => Owner }.
 
-rm_prefix(#occi_node{id=#uri{}=Id, data=Data}=Node, Prefix) when is_list(Prefix) -> 
-    N = Node#occi_node{id=occi_uri:rm_prefix(Id, Prefix)},
-    N#occi_node{data=case Data of
-                         #occi_resource{}=R -> occi_resource:rm_prefix(R, Prefix);
-                         #occi_link{}=L -> occi_link:rm_prefix(L, Prefix);
-                         #occi_mixin{}=M -> occi_mixin:rm_prefix(M, Prefix);
-                         #occi_collection{}=C -> occi_collection:rm_prefix(C, Prefix);
-                         _ -> Data
-                     end}.
+
+%% @doc Get node owner group
+%% @end
+-spec group(t()) -> erocci_creds:group().
+group(N) ->
+    maps:get(group, N, anonymous).
+
+
+%% @doc Set node owner group
+%% @end
+-spec group(erocci_creds:group(), t()) -> t().
+group(Group, N) when is_binary(Group); anonymous =:= Group ->
+    N#{ group => Group }.
