@@ -27,11 +27,11 @@
 	 path/1,
 	 depth/1,
 	 is_root/1,
-	 has_category/2,
 	 start_link/1]).
 
 %% Callbacks wrappers
--export([get/2,
+-export([model/1,
+	 get/2,
 	 create/2,
 	 update/3,
 	 action/3,
@@ -49,7 +49,7 @@
 -record(state, {ref             :: atom(),
                 mod             :: atom(),
 		capabilities    :: [capability()],
-		categories      :: sets:set(),
+		model           :: occi_extension:t(),
                 state           :: term()}).
 
 -type id() :: term().
@@ -81,8 +81,8 @@
 -callback terminate(State :: term()) -> ok.
 
 
--callback categories(State :: term()) -> 
-    {{ok, [occi_category:t()]} | {error, errors()}, NewState :: term()}.
+-callback model(State :: term()) -> 
+    {{ok, occi_extension:t()} | {error, errors()}, NewState :: term()}.
 
 
 -callback get(Id :: binary(), State :: term()) ->
@@ -186,13 +186,6 @@ is_root(#backend{ depth=Depth }) ->
     0 =:= Depth.
 
 
-%% @doc Does the backend handle this category ?
-%% @end
--spec has_category(occi_category:id(), t()) -> boolean().
-has_category(Id, #backend{ id=B }) ->
-    gen_server:call(B, {has_category, Id}).
-
-
 %% @doc 
 %% @end
 -spec spec(t()) -> supervisor:child_spec().
@@ -214,6 +207,18 @@ start_link(#backend{id=Id, handler=Mod}=Backend) ->
 %%% 
 %%% Callback wrappers
 %%%
+
+%% @doc Get backend model
+%% @end
+-spec model(t()) -> occi_extension:t().
+model(#backend{ id=B }) ->
+    case gen_server:call(B, {model, []}) of
+	{ok, Ext} ->
+	    Ext;
+	{error, Err} ->
+	    throw(Err)
+    end.
+
 
 %% @doc Lookup for a node at Path
 %% @end
@@ -338,8 +343,8 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Page, Number) ->
 init(#backend{id=Id, handler=Mod}=Backend) ->
     try Mod:init(Backend) of
         {ok, Capabilities, BackendState} ->
-	    S = #state{ref=Id, mod=Mod, capabilities=Capabilities, state=BackendState, categories=sets:new()},
-	    init_categories(S);
+	    S = #state{ref=Id, mod=Mod, capabilities=Capabilities, state=BackendState},
+	    {ok, S};
         {error, Err} ->
             {stop, Err}
     catch _:Err ->
@@ -361,9 +366,6 @@ init(#backend{id=Id, handler=Mod}=Backend) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call({has_category, Id}, _From, #state{ categories=Ids }=S) ->
-    {reply, sets:is_element(Id, Ids), S};
-
 handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
     {Reply, BState2} = erlang:apply(Mod, Cmd, Args ++ [BState]),
     {reply, Reply, State#state{mod=Mod, state=BState2}}.
@@ -422,24 +424,3 @@ terminate(_Reason, #state{mod=Mod, state=State}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-
-init_categories(#state{ mod=Mod, state=BState }=S) ->
-    case Mod:categories(BState) of
-	{{ok, Categories}, BState2} ->
-	    S2 = add_categories(Categories, S#state{ state=BState2 }),
-	    {ok, S2};
-	{{error, _}=Err, _} -> 
-	    {stop, Err}
-    end.
-
-
-add_categories(Categories, #state{ categories=Set }=S) ->
-    Fun = fun (C, Acc) ->
-		  ok = occi_models:add_category(C),
-		  sets:add_element(occi_category:id(C), Acc)
-	  end,
-    try lists:foldl(Fun, Set, Categories) of
-	Set2 -> {ok, S#state{ categories=Set2 }}
-    catch throw:Err -> {stop, Err}
-    end.

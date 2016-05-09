@@ -313,7 +313,7 @@ update2(Entity, Obj) ->
     try occi_entity:update_from_map(Obj, Entity) of
 	_Entity2 ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
-	    erocci_backend:update(Backend, Entity, maps:get(attributes, Obj), #{})
+	    erocci_backend:update(Backend, Entity, maps:get(attributes, Obj))
     catch throw:Err ->
 	    Err
     end.
