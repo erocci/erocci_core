@@ -23,10 +23,6 @@
 -export([start_link/0, 
 	 add/1]).
 
--type opts() :: [{atom(), any()}].
--callback start_link(atom(), opts()) -> ok | {error, atom()}.
--callback terminate(atom(), term()) -> ok.
-
 %% Supervisor callbacks
 -export([init/1]).
 

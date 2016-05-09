@@ -19,6 +19,9 @@
 
 -export_type([id/0, t/0]).
 
+-type opts() :: [{atom(), any()}].
+-callback start_link(atom(), opts()) -> ok | {error, atom()}.
+-callback terminate(atom(), term()) -> ok.
 
 %% @doc Create a listener structure
 %% @throw {listener, term()}
