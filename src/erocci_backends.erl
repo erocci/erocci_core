@@ -194,14 +194,14 @@ find_test_() ->
     add_backend(erocci_backend:new({undeuxtrois, dummy, [], <<"/un/deux/trois">>})),
     add_backend(erocci_backend:new({deux, dummy, [], <<"/deux">>})),
     [
-     ?_assertMatch(root,        erocci_backend:id(find(<<"/">>))),
-     ?_assertMatch(root,        erocci_backend:id(find(<<"/trois">>))),
-     ?_assertMatch(un,          erocci_backend:id(find(<<"/un">>))),
-     ?_assertMatch(un,          erocci_backend:id(find(<<"/un/">>))),
-     ?_assertMatch(un,          erocci_backend:id(find(<<"/un//">>))),
-     ?_assertMatch(un,          erocci_backend:id(find(<<"/un/un">>))),
-     ?_assertMatch(undeux,      erocci_backend:id(find(<<"/un/deux/quatre">>))),
-     ?_assertMatch(undeuxtrois, erocci_backend:id(find(<<"/un/deux/trois/quatre">>))),
-     ?_assertMatch(deux,        erocci_backend:id(find(<<"/deux/un">>)))
+     ?_assertMatch(root,        erocci_backend:id(by_path(<<"/">>))),
+     ?_assertMatch(root,        erocci_backend:id(by_path(<<"/trois">>))),
+     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un">>))),
+     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/">>))),
+     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un//">>))),
+     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/un">>))),
+     ?_assertMatch(undeux,      erocci_backend:id(by_path(<<"/un/deux/quatre">>))),
+     ?_assertMatch(undeuxtrois, erocci_backend:id(by_path(<<"/un/deux/trois/quatre">>))),
+     ?_assertMatch(deux,        erocci_backend:id(by_path(<<"/deux/un">>)))
     ].
 -endif.
