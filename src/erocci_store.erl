@@ -32,11 +32,6 @@
 	 action/4,
 	 update/3]).
 
-%%-record(tag, { id       :: occi_category:id(),
-%%	         creds    :: erocci_creds:t() }).
-
-%%-type tag() :: #tag{}.
-
 -type store_error() :: not_found
 		     | method_not_allowed
 		     | forbidden

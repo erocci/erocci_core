@@ -15,7 +15,7 @@
     stdlib,
     sasl,
     inets,
-    mensia,
+    mnesia,
     occi
    ]},
   {registered, []},
