@@ -32,17 +32,15 @@
 	 action/4,
 	 update/3]).
 
--type store_error() :: not_found
-		     | method_not_allowed
-		     | forbidden
-		     | conflict
-		     | {unauthorized, binary()}.
+-type error() :: not_found
+	       | method_not_allowed
+	       | forbidden
+	       | conflict
+	       | {unauthorized, binary()}.
 
--type errors() :: store_error() 
-		| erocci_backend:errors()
-		| occi_rendering:parse_error().
+-type data() :: {occi_utils:mimetype(), iolist()}.
 
--export_type([errors/0]).
+-export_type([error/0]).
 
 %% @doc Return map of location -> bounded collections
 %% @end
@@ -61,18 +59,18 @@ collections() ->
 %% @doc Retrieve capabilities node
 %% @end
 -spec capabilities(erocci_creds:t(), erocci_filter:t() | undefined) -> 
-			  {ok, [occi_category:t()]} | {error, errors()}.
+			  {ok, [occi_category:t()], erocci_node:serial()} | {error, errors()}.
 capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
     Categories = lists:filter(fun (E) -> erocci_filter:match(E, Filter) end, occi_models:categories()),
     Node = occi_node:capabilities(Categories),
-    auth(read, Creds, Node, fun () -> {ok, Categories} end).
+    auth(read, Creds, Node, fun () -> {ok, Categories, undefined} end).
 
 
 %% @doc Add a user-defined mixin
 %% @end
--spec new_mixin(maps:map(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, errors()}.
-new_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
-    try occi_mixin:from_map(Map) of
+-spec new_mixin(data(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, errors()}.
+new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
+    try occi_rendering:parse(Mimetype, Data, occi_mixin) of
 	Mixin ->
 	    Node = erocci_node:capabilities([Mixin]),
 	    Success = fun() ->
@@ -86,9 +84,10 @@ new_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
 
 %% @doc Delete a user-defined mixin
 %% @end
--spec delete_mixin(maps:map(), erocci_creds:t()) -> ok | {error, errors()}.
-delete_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
-    try occi_category:id_from_map(Map) of
+-spec delete_mixin(data(), erocci_creds:t()) -> ok | {error, errors()}.
+delete_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
+    Fun = fun(AST) -> occi_category:id_from_map(AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
 	Id ->
 	    Node = erocci_node:capabilities([Id]),
 	    Success = fun () ->
@@ -106,9 +105,9 @@ delete_mixin(Map, Creds) when is_map(Map), ?is_creds(Creds) ->
 %% If `number = undefined', retrieve whole collection.
 %% @end
 -spec collection(occi_category:t(), erocci_creds:t(), erocci_filter:t(), integer(), integer() | undefined) ->
-			{ok, occi_collection:t()} | {error, errors()}.
+			{ok, occi_collection:t(), erocci_node:serial()} | {error, errors()}.
 collection(Category, Creds, Filter, Page, Number) ->
-    collection(Category, Creds, read, Filter, Page, Number).	
+    collection(Category, Creds, read, Filter, Page, Number).
 
 
 %% @doc Delete all entities from bounded collection
@@ -125,10 +124,11 @@ delete_all(Category, Creds) ->
 
 %% @doc Associate entities to the given mixin
 %% @end
--spec append_mixin(occi_category:t(), maps:map(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
-append_mixin(Mixin, Obj, Creds) ->
+-spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
+append_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
-    try occi_collection:from_map(MixinId, Obj) of
+    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
 	    Ret = apply_collection(Coll, Creds, fun (Backend, Category, Entity) ->
 							erocci_backend:mixin(Backend, Category, Entity)
@@ -144,10 +144,11 @@ append_mixin(Mixin, Obj, Creds) ->
 
 %% @doc Replace collection of entities associated to mixin
 %% @end
--spec set_mixin(occi_category:t(), maps:map(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
-set_mixin(Mixin, Obj, Creds) ->
+-spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
+set_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
-    try occi_collection:from_map(MixinId, Obj) of
+    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
 	New ->
 	    Actual = collection(Mixin, Creds, update),
 	    ToDelete = sets:subtract(occi_collection:ids(Actual), occi_collection:ids(New)),
@@ -171,10 +172,11 @@ set_mixin(Mixin, Obj, Creds) ->
 
 %% @doc Disassociate entities from the given mixin
 %% @end
--spec remove_mixin(occi_category:t(), maps:map(), erocci_creds:t()) -> ok | {error, errors()}.
-remove_mixin(Mixin, Obj, Creds) ->
+-spec remove_mixin(occi_category:t(), data(), erocci_creds:t()) -> ok | {error, errors()}.
+remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
-    try occi_collection:from_map(MixinId, Obj) of
+    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
 	    Coll2 = case occi_collection:size(Coll) of
 			0 -> collection(Mixin, Creds, update);
@@ -194,25 +196,23 @@ remove_mixin(Mixin, Obj, Creds) ->
 
 %% @doc Creates new entity
 %% @end
--spec create(occi_category:t() | binary(), maps:map(), erocci_creds:t()) -> 
+-spec create(occi_category:t() | binary(), data(), erocci_creds:t()) -> 
 		    {ok, occi_entity:t()} | {error, errors()}.
-create(Path, Obj, Creds) when is_binary(Path) ->
-    create(Path, Obj, Creds, fun () -> erocci_backends:by_path(Path) end);
+create(Path, Data, Creds) when is_binary(Path) ->
+    create(Path, Data, Creds, fun () -> erocci_backends:by_path(Path) end);
 
-create(Category, Obj, Creds) when ?is_category(Category) ->
+create(Category, Data, Creds) when ?is_category(Category) ->
     Id = occi_category:id(Category),
-    create(Category, Obj, Creds, fun () -> erocci_backends:by_category_id(Id) end).
+    create(Category, Data, Creds, fun () -> erocci_backends:by_category_id(Id) end).
 
 
 %% @doc Retrieve an entity or unbounded collection
 %% @todo Implement unbounded collection (?)
 %% @end
 -spec get(binary(), erocci_creds:t(), erocci_filter:t(), integer(), integer() | undefined) -> 
-		 {ok, occi_entity:t() | occi_collection:t()} | {error, errors()}.
-get(Path, Creds, Filter, Page, Number) when is_binary(Path),
-					    ?is_filter(Filter),
-					    is_integer(Page),
-					    Number =:= undefined orelse is_integer(Number) ->
+		 {ok, occi_entity:t() | occi_collection:t(), erocci_node:serial()} | {error, errors()}.
+get(Path, Creds, Filter, _Start, _Number) when is_binary(Path),
+					       ?is_filter(Filter) ->
     entity(Path, Creds, read).
 
 
@@ -229,13 +229,13 @@ delete(Path, Creds) ->
 
 %% @doc Execute an action on the given entity or collection
 %% @end
--spec action(binary() | occi_category:t(), binary(), maps:map(), erocci_creds:t()) ->
+-spec action(binary() | occi_category:t(), binary(), data(), erocci_creds:t()) ->
 		    {ok, erocci_type:t()} | {error, errors()}.
-action(Path, ActionTerm, Obj, Creds) when is_binary(Path),
+action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 					  is_binary(ActionTerm),
-					  is_map(Obj),
 					  ?is_creds(Creds) ->
-    try occi_invoke:from_map(ActionTerm, Obj) of
+    Fun = fun (AST) -> occi_invoke:from_map(ActionTerm, AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
 	Invoke ->
 	    case entity(Path, Creds, {action, occi_invoke:id(Invoke)}) of
 		{ok, Entity} ->
@@ -250,13 +250,12 @@ action(Path, ActionTerm, Obj, Creds) when is_binary(Path),
 
 %% @doc Update entity
 %% @end
--spec update(binary(), maps:map(), erocci_creds:t()) -> {ok, occi_entity:t()} | {error, errors()}.
-update(Path, Obj, Creds) when is_binary(Path),
-			      is_map(Obj),
+-spec update(binary(), data(), erocci_creds:t()) -> {ok, occi_entity:t()} | {error, errors()}.
+update(Path, Data, Creds) when is_binary(Path),
 			      ?is_creds(Creds) ->
     case entity(Path, Creds, update) of
 	{ok, Entity}->
-	    update2(Entity, Obj);
+	    update2(Entity, Data);
 	{error, _}=Err ->
 	    Err
     end.
@@ -270,7 +269,13 @@ entity(Path, Creds, Op) ->
     case erocci_backend:get(Backend, Path) of
 	{ok, Node} ->
 	    Success = fun () ->
-			      {ok, erocci_node:data(Node)}
+			      Entity = erocci_node:data(Node),
+			      case erocci_type:type(Entity) of
+				  resource ->
+				      resource_links(Entity, erocci_node:serial(Node), Creds);
+				  link ->
+				      {ok, Entity, erocci_node:serial(Node)}
+			      end
 		      end,
 	    auth(Op, Creds, Node, Success);
 	{error, _}=Err ->
@@ -278,29 +283,44 @@ entity(Path, Creds, Op) ->
     end.
 
 
-usermixin(Id) ->
-    occi_category:category(Id).
+resource_links(Resource, Serial, Creds) ->
+    Links = lists:foldl(fun (LinkId, Acc) ->
+				[ entity(LinkId, Creds, read) | Acc ]
+			end, [], occi_resource:links(Resource)),
+    {ok, occi_resource:links(Links, Resource), Serial}.
 
 
 new_mixin2(Mixin) ->
-    case usermixin(occi_category:id(Mixin)) of
+    case occi_models:category(occi_category:id(Mixin)) of
 	undefined ->
-	    case occi_models:add_category(Mixin) of
-		ok -> {ok, Mixin};
+	    Mixin1 = occi_mixin:tag(true, Mixin),
+	    case occi_models:add_category(Mixin1) of
+		ok -> {ok, Mixin1};
 		{error, _}=Err -> Err
 	    end;
-	Mixin2 ->
-	    %% Ignore duplicate mixins
-	    {ok, Mixin2}
+	Category ->
+	    case occi_category:class(Category) =:= mixin 
+		andalso occi_mixin:tag(Category) =:= true of
+		true ->
+		    {ok, Category};
+		false ->
+		    {error, conflict}
+	    end
     end.
 
 
 delete_mixin2(Id) ->
-    case usermixin(Id) of
+    case occi_models:category(occi_category:id(Id)) of
 	undefined ->
 	    {error, not_found};
-	_Mixin ->
-	    occi_models:rm_category(Id)
+	Category ->
+	    case occi_category:class(Category) =:= mixin 
+		andalso occi_mixin:tag(Category) =:= true of
+		true ->
+		    occi_models:rm_category(Id);
+		false ->
+		    {error, forbidden}
+	    end
     end.
     
 
@@ -309,11 +329,12 @@ action2(Invoke, Entity) ->
     erocci_backend:action(Backend, Invoke, Entity).
 
 
-update2(Entity, Obj) ->
-    try occi_entity:update_from_map(Obj, Entity) of
-	_Entity2 ->
+update2(Entity, {Mimetype, Data}) ->
+    Fun = fun(AST) -> occi_entity:update_from_map(AST, Entity) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
+	Attributes ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
-	    erocci_backend:update(Backend, Entity, maps:get(attributes, Obj))
+	    erocci_backend:update(Backend, Entity, Attributes)
     catch throw:Err ->
 	    Err
     end.
@@ -324,40 +345,43 @@ collection(Category, Creds, Op) ->
     collection(Category, Creds, Op, [], 0, undefined).
 
 
-collection(Category, Creds, Op, Filter, Page, Number) ->
+collection(Category, Creds, Op, Filter, Start, 0) ->
+    collection(Category, Creds, Op, Filter, Start, undefined);
+
+collection(Category, Creds, Op, Filter, Start, Number) ->
     Backends = erocci_backends:by_category_id(occi_category:id(Category)),
     Id = occi_category:id(Category),
-    collection2(erocci_backend:collection(hd(Backends), Id, Filter, Page, Number),
-		Creds, Filter, Page, Number, Backends, 
+    collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start, Number),
+		Creds, Filter, Start, Number, Backends, 
 		occi_collection:new(Id), Op).
 
 
 %% Creds=undefined for internal purpose (credentials will be checked later)
-collection2([], _Creds, _Op, _Filter, _Page, _Number, [], Acc) ->
+collection2([], _Creds, _Op, _Filter, _Start, _Number, [], Acc) ->
     %% No more entity, no more backends
-    {ok, Acc};
+    {ok, Acc, undefined};
 
-collection2([], Creds, Op, Filter, Page, Number, [ _Backend | Backends ], Acc) ->
+collection2([], Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) ->
     %% No more entity in this backend
     Id = occi_collection:id(Acc),
-    Page2 = case occi_category:size(Acc) of
-		0 -> Page;   %% still no element, apply shift on next backends
+    Start2 = case occi_category:size(Acc) of
+		0 -> Start;  %% still no element, apply shift on next backends
 		_ -> 0       %% got first elements, do not shift requests on next backends
 	    end,
-    collection2(erocci_backend:collection(hd(Backends), Id, Filter, Page2, Number),
-		Creds, Op, Filter, Page2, Number, Backends, Acc);
+    collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start2, Number),
+		Creds, Op, Filter, Start2, Number, Backends, Acc);
 
-collection2(Nodes, Creds, Op, Filter, Page, Number, [ Backend | Backends ], Acc) ->
+collection2(Nodes, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
     case collection_auth(Nodes, Creds, Op, Number, Acc) of
 	{error, _}=Err ->
 	    %% Authorization required
 	    Err;
 	{0, Acc2} ->
-	    {ok, Acc2};
+	    {ok, Acc2, undefined};
 	{Left, Acc2} ->
 	    %% Still trying same backend
 	    Id = occi_collection:id(Acc),
-	    collection2(erocci_backend:collection(Backend, Id, Filter, Page+1, Left),
+	    collection2(erocci_backend:collection(Backend, Id, Filter, Start+Number, Left),
 			Creds, Op, Filter, 0, Left, Backends, Acc2)
     end.
 
@@ -429,8 +453,9 @@ apply_collection([ Id | Tail ], Creds, MixinId, Fun, ok) ->
     end.
 
 
-create(PathOrCategory, Obj, Creds, BackendFun) ->
-    try	occi_entity:from_map(PathOrCategory, Obj) of
+create(PathOrCategory, {Mimetype, Data}, Creds, BackendFun) ->
+    Fun = fun (AST) -> occi_entity:from_map(PathOrCategory, AST) end,
+    try	occi_rendering:parse(Mimetype, Data, Fun) of
 	Entity -> create2(occi_type:type(Entity), Entity, Creds, BackendFun)
     catch throw:Err -> Err
     end.
@@ -438,16 +463,27 @@ create(PathOrCategory, Obj, Creds, BackendFun) ->
 
 create2(resource, Resource, Creds, BackendFun) ->
     Success = fun () ->
-		      erocci_backend:create(BackendFun(), Resource),
+		      erocci_backend:create(BackendFun(), canonical_links(Resource), 
+					    erocci_creds:user(Creds), erocci_creds:group(Creds)),
 		      create_resource_links(occi_resource:links(Resource), Creds, {ok, Resource})
 	      end,
     auth(create, Creds, erocci_node:entity(Resource), Success);
 
 create2(link, Link, Creds, BackendFun) ->
     Success = fun () ->
-		      erocci_backend:create(BackendFun(), Link)
+		      erocci_backend:create(BackendFun(), Link, 
+					    erocci_creds:user(Creds), erocci_creds:group(Creds))
 	      end,
     auth(create, Creds, erocci_node:entity(Link), Success).
+
+
+canonical_links(Resource) ->
+    Links2 = lists:foldl(fun (Id, Acc) when is_binary(Id) ->
+				 [ Id | Acc ];
+			     (Link, Acc) when ?is_link(Link) ->
+				 [ occi_link:id(Link) | Acc ]
+			 end, [], occi_resource:links(Resource)),
+    occi_resource:links(Links2, Resource).
 
 
 create_resource_links(_, _Creds, {error, _}=Err) ->
@@ -464,12 +500,6 @@ create_resource_links([ Link | Links ], Creds, _Acc) ->
 			 fun () -> erocci_backends:by_path(Url) end
 		 end,			 
     create_resource_links(Links, Creds, create2(link, Link, Creds, BackendFun)).
-
-
-%%auth(Op, Creds, Node) ->
-%%    auth(Op, Creds, Node, 
-%%	 fun () -> {ok, Node} end,
-%%	 fun (Err) -> Err end).
 
 
 auth(Op, Creds, Node, Success) ->

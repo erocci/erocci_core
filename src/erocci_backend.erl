@@ -62,13 +62,13 @@
 		 }).
 -type t() :: #backend{}.
 
--type backend_errors() :: not_found.
--type errors() :: backend_errors()
-		| occi_rendering:errors().
+-type backend_error() :: not_found.
+-type error() :: backend_error()
+	       | occi_rendering:error().
 
 -export_type([t/0,
 	      capability/0,
-	      errors/0]).
+	      error/0]).
 
 %%%
 %%% Callbacks
@@ -82,46 +82,56 @@
 
 
 -callback model(State :: term()) -> 
-    {{ok, occi_extension:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, occi_extension:t()}
+     | {error, errors()}, NewState :: term()}.
 
 
 -callback get(Id :: binary(), State :: term()) ->
-    {{ok, erocci_node:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:owner(), erocci_creds:group(), erocci_node:serial()} 
+     | {error, error()}, NewState :: term()}.
 
 
--callback create(Id :: binary(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()} | {error, errors()}, NewState :: term()}.
+-callback create(Id :: binary(), Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
+    {{ok, occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
 
 
--callback create(Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:id(), occi_entity:t()} | {error, errors()}, NewState :: term()}.
+-callback create(Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
+    {{ok, occi_entity:id(), occi_entity:t()} 
+     | {error, error()}, NewState :: term()}.
 
 
 -callback update(Actual :: occi_entity:t(), Attributes :: maps:map(), State :: term()) ->
-    {{ok, Entity2 :: occi_entity:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, Entity2 :: occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
 
 
 -callback action(Invoke :: occi_invoke:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
 
 
 -callback delete(Id :: binary(), State :: term()) ->
-    {ok | {error, errors()}, NewState :: term()}.
+    {ok
+     | {error, error()}, NewState :: term()}.
 
 
 -callback mixin(Mixin :: occi_mixin:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
 
 
 -callback unmixin(Mixin :: occi_mixin:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()} | {error, errors()}, NewState :: term()}.
+    {{ok, occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
 
 
 -callback collection(Id :: occi_category:id() | binary(),
 		     Filter :: erocci_filter:t(),
-		     Page :: integer(), Number :: integer() | undefined,
+		     Start :: integer(), Number :: integer() | undefined,
 		     State :: term()) ->
-    {{ok, [erocci_node:t()]} | {error, errors()}, NewState :: term()}.
+    {{ok, [{occi_entity:t(), erocci_creds:owner(), erocci_creds:group()}]}
+     | {error, error()}, NewState :: term()}.
 
 
 %% @doc Creates new backend entry
@@ -134,7 +144,7 @@ new({Id, Mod, Opts, Mountpoint}) when is_list(Mountpoint) ->
 new({Id, Mod, Opts, << $/, _/binary >> = Path}) when is_atom(Mod) ->
     Mountpoint = binary:split(Path, [<<$/>>], [global, trim_all]),
     #backend{ id=Id, handler=Mod, opts=Opts, 
-	      raw_mountpoint=Path,
+	      raw_mountpoint=occi_utils:normalize(Path),
 	      depth=length(Mountpoint),
 	      mountpoint=Mountpoint };
 
@@ -222,11 +232,11 @@ model(#backend{ id=B }) ->
 
 %% @doc Lookup for a node at Path
 %% @end
--spec get(t(), binary()) -> {ok, erocci_node:t()} | {error, errors()}.
+-spec get(t(), binary()) -> {ok, erocci_node:t()} | {error, error()}.
 get(#backend{ id=B, raw_mountpoint=Prefix }, Id) ->
-    case gen_server:call(B, {get, [occi_uri:rm_prefix(Prefix, Id)]}) of
-	{ok, Node} ->
-	    {ok, erocci_node:add_prefix(Prefix, Node)};
+    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Id)]}) of
+	{ok, Entity, Owner, Group, Serial} ->
+	    {ok, erocci_node:entity(Entity, Owner, Group, Serial)};
 	{error, _}=Err ->
 	    Err
     end.
@@ -234,19 +244,20 @@ get(#backend{ id=B, raw_mountpoint=Prefix }, Id) ->
 
 %% @doc Create a new entity
 %% @end
--spec create(t(), occi_entity:t()) -> {ok, erocci_entity:t()} | {error, errors()}.
+-spec create(t(), occi_entity:t()) -> {ok, erocci_entity:t()} | {error, error()}.
 create(#backend{ id=B, raw_mountpoint=Prefix }, Entity) ->
     Args = case occi_entity:id(Entity) of
 	       undefined ->
-		   [occi_entity:rm_prefix(Prefix, Entity)];
+		   [occi_entity:change_prefix(rm, Prefix, Entity)];
 	       Id ->
-		   [occi_uri:rm_prefix(Prefix, Id), occi_entity:rm_prefix(Prefix, Entity)]
+		   [occi_uri:change_prefix(rm, Prefix, Id), occi_entity:change_prefix(rm, Prefix, Entity)]
 	   end,
     case gen_server:call(B, {create, Args}) of
 	{ok, Entity2} ->
-	    {ok, occi_entity:add_prefix(Entity2, Prefix)};
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
 	{ok, Id2, Entity2} ->
-	    {ok, occi_uri:add_prefix(Prefix, Id2), occi_entity:add_prefix(Entity2, Prefix)};
+	    Id3 = occi_uri:change_prefix(add, Prefix, Id2),
+	    {ok, occi_entity:change_prefix(add, Prefix, occi_entity:id(Id3, Entity2))};
 	{error, _}=Err -> 
 	    Err
     end.
@@ -254,12 +265,11 @@ create(#backend{ id=B, raw_mountpoint=Prefix }, Entity) ->
 
 %% @doc Update an entity
 %% @end
--spec update(t(), Entity :: occi_entity:t(), Attributes :: maps:map()) -> ok | {error, errors()}.
+-spec update(t(), Entity :: occi_entity:t(), Attributes :: maps:map()) -> ok | {error, error()}.
 update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
-    Attributes2 = maps:map(fun (_K, V) -> occi_attribute:rm_prefix(Prefix, V) end, Attributes),
-    case gen_server:call(B, {update, [occi_entity:rm_prefix(Prefix, Entity), Attributes2]}) of
+    case gen_server:call(B, {update, [occi_entity:change_prefix(rm, Prefix, Entity), Attributes]}) of
 	{ok, Entity2} ->
-	    {ok, occi_entity:add_prefix(Prefix, Entity2)};
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
 	{error, _}=Err ->
 	    Err
     end.
@@ -267,11 +277,11 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
 
 %% @doc Invoke an action on an existing entity
 %% @end
--spec action(t(), occi_invoke:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, errors()}.
+-spec action(t(), occi_invoke:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
-    case gen_server:call(B, {action, [occi_invoke:rm_prefix(Prefix, Invoke), occi_entity:rm_prefix(Prefix, Entity)]}) of
+    case gen_server:call(B, {action, [Invoke, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
 	{ok, Entity2} ->
-	    {ok, occi_entity:add_prefix(Prefix, Entity2)};
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
 	{error, _}=Err ->
 	    Err
     end.
@@ -279,18 +289,18 @@ action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
 
 %% @doc Delete an entity
 %% @end
--spec delete(t(), Id :: binary()) -> ok | {error, errors()}.
+-spec delete(t(), Id :: binary()) -> ok | {error, error()}.
 delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
-    gen_server:call(B, {delete, [occi_uri:rm_prefix(Prefix, Id)]}).
+    gen_server:call(B, {delete, [occi_uri:change_prefix(rm, Prefix, Id)]}).
 
 
 %% @doc Add a mixin to an existing entity
 %% @end
--spec mixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, errors()}.
+-spec mixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
-    case gen_server:call(B, {mixin, [Mixin, occi_entity:rm_prefix(Prefix, Entity)]}) of
+    case gen_server:call(B, {mixin, [Mixin, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
 	{ok, Entity2} ->
-	    {ok, occi_entity:add_prefix(Prefix, Entity2)};
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
 	{error, _}=Err ->
 	    Err
     end.
@@ -298,31 +308,34 @@ mixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
 
 %% @doc Remove mixin from existing entity
 %% @end
--spec unmixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, errors()}.
+-spec unmixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
-    case gen_server:call(B, {unmixin, [Mixin, occi_entity:rm_prefix(Prefix, Entity)]}) of
+    case gen_server:call(B, {unmixin, [Mixin, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
 	{ok, Entity2} ->
-	    {ok, occi_entity:add_prefix(Prefix, Entity2)};
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
 	{error, _}=Err ->
 	    Err
     end.
 
 
-%% @doc Retrieve a list of nodes
+%% @doc Retrieve a list of entities
 %% @end
 -spec collection(t(),
 		 Id :: occi_category:id() | binary(),
 		 Filter :: erocci_filter:t(),
-		 Page :: integer(), Number :: integer() | undefined) ->
-			{ok, [occi_node:t()]} | {error, errors()}.
-collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Page, Number) ->
+		 Start :: integer(), Number :: integer() | undefined) ->
+			{ok, [erocci_node:t()]} | {error, error()}.
+collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) ->
     Id2 = case Id of
-	      Path when is_binary(Path) -> occi_uri:rm_prefix(Prefix, Path);
+	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
 	      CatId when ?is_category_id(CatId) -> CatId
 	  end,	      
-    case gen_server:call(B, {collection, [Id2, Filter, Page, Number]}) of
-	{ok, Nodes} ->
-	    {ok, lists:map(fun (N) -> occi_node:add_prefix(N) end, Nodes)};
+    case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}) of
+	{ok, Items} ->
+	    Nodes = lists:map(fun ({Entity, Owner, Group}) -> 
+				       erocci_node:entity(occi_entity:change_prefix(add, Prefix, Entity), Owner, Group)
+			       end, Items),
+	    {ok, Nodes};
 	{error, _}=Err ->
 	    Err
     end.

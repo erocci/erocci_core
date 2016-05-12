@@ -228,7 +228,7 @@ unregister_categories(Backend) ->
 	ok -> unregister_path(Backend);
 	Err -> Err
     end.
-	
+
 
 unregister_path(Backend) ->
     Depth = erocci_backend:depth(Backend),

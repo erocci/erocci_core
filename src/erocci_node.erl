@@ -17,6 +17,8 @@
 
 -export([capabilities/1,
 	 entity/1,
+	 entity/3,
+	 entity/4,
 	 type/1,
 	 location/1,
 	 data/1,
@@ -24,7 +26,9 @@
 	 owner/1,
 	 owner/2,
 	 group/1,
-	 group/2]).
+	 group/2,
+	 serial/1,
+	 serial/2]).
 
 
 -type type() :: capabilities
@@ -33,9 +37,10 @@
 	      | entity.
 
 
+-type serial() :: binary() | undefined.
 -type t() :: #{}.
 
--export_type([t/0]).
+-export_type([t/0, serial/0]).
 
 %%%
 %%% API
@@ -47,7 +52,8 @@
 capabilities(Categories) ->
     #{ type => capabilities,
        data => Categories,
-       location => <<"/-/">>
+       location => <<"/-/">>,
+       serial => undefined
      }.
 
 
@@ -58,15 +64,32 @@ entity(Path) when is_binary(Path) ->
     #{ type => entity,
        id => Path,
        data => undefined,
-       location => Path };
+       location => Path,
+       serial => undefined
+     };
 
 entity(Entity) when ?is_entity(Entity) ->
     Id = occi_entity:id(Entity),
     #{ type => entity,
        id => Id,
        data => Entity,
-       location => Id
+       location => Id,
+       serial => undefined
      }.
+
+
+%% @doc Creates an entity node
+%% @end
+-spec entity(occi_entity:t(), erocci_creds:user(), erocci_creds:group()) -> t().
+entity(Entity, Owner, Group) ->
+    group(Group, owner(Owner, entity(Entity))).
+
+
+%% @doc Creates an entity node
+%% @end
+-spec entity(occi_entity:t(), erocci_creds:user(), erocci_creds:group(), serial()) -> t().
+entity(Entity, Owner, Group, Serial) ->
+    serial(Serial, entity(Entity, Owner, Group)).
 
 
 %% @doc Get node type
@@ -110,7 +133,7 @@ owner(N) ->
 %% @doc Set node owner
 %% @end
 -spec owner(erocci_creds:t(), t()) -> t().
-owner(Owner, N) when is_binary(Owner); anonyous =:= Owner ->
+owner(Owner, N) when is_binary(Owner); anonymous =:= Owner ->
     N#{ owner => Owner }.
 
 
@@ -126,3 +149,17 @@ group(N) ->
 -spec group(erocci_creds:group(), t()) -> t().
 group(Group, N) when is_binary(Group); anonymous =:= Group ->
     N#{ group => Group }.
+
+
+%% @doc Get node serial (tag)
+%% @end
+-spec serial(t()) -> serial().
+serial(#{ serial := Serial }) ->
+    Serial.
+
+
+%% @doc Set node serial number (tag)
+%% @end
+-spec serial(serial(), t()) -> t().
+serial(Serial, Node) when is_map(Node) ->
+    Node#{ serial := Serial }.
