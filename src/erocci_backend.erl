@@ -83,7 +83,7 @@
 
 -callback model(State :: term()) -> 
     {{ok, occi_extension:t()}
-     | {error, errors()}, NewState :: term()}.
+     | {error, error()}, NewState :: term()}.
 
 
 -callback get(Id :: binary(), State :: term()) ->

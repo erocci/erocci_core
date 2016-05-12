@@ -59,7 +59,7 @@ collections() ->
 %% @doc Retrieve capabilities node
 %% @end
 -spec capabilities(erocci_creds:t(), erocci_filter:t() | undefined) -> 
-			  {ok, [occi_category:t()], erocci_node:serial()} | {error, errors()}.
+			  {ok, [occi_category:t()], erocci_node:serial()} | {error, error()}.
 capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
     Categories = lists:filter(fun (E) -> erocci_filter:match(E, Filter) end, occi_models:categories()),
     Node = occi_node:capabilities(Categories),
@@ -68,7 +68,7 @@ capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
 
 %% @doc Add a user-defined mixin
 %% @end
--spec new_mixin(data(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, errors()}.
+-spec new_mixin(data(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, error()}.
 new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
     try occi_rendering:parse(Mimetype, Data, occi_mixin) of
 	Mixin ->
@@ -84,7 +84,7 @@ new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
 
 %% @doc Delete a user-defined mixin
 %% @end
--spec delete_mixin(data(), erocci_creds:t()) -> ok | {error, errors()}.
+-spec delete_mixin(data(), erocci_creds:t()) -> ok | {error, error()}.
 delete_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
     Fun = fun(AST) -> occi_category:id_from_map(AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
@@ -105,14 +105,14 @@ delete_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
 %% If `number = undefined', retrieve whole collection.
 %% @end
 -spec collection(occi_category:t(), erocci_creds:t(), erocci_filter:t(), integer(), integer() | undefined) ->
-			{ok, occi_collection:t(), erocci_node:serial()} | {error, errors()}.
+			{ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
 collection(Category, Creds, Filter, Page, Number) ->
     collection(Category, Creds, read, Filter, Page, Number).
 
 
 %% @doc Delete all entities from bounded collection
 %% @end
--spec delete_all(occi_category:t(), erocci_creds:t()) -> ok | {error, errors()}.
+-spec delete_all(occi_category:t(), erocci_creds:t()) -> ok | {error, error()}.
 delete_all(Category, Creds) ->
     case collection(Category, Creds, delete) of
 	{ok, Coll} ->
@@ -124,7 +124,7 @@ delete_all(Category, Creds) ->
 
 %% @doc Associate entities to the given mixin
 %% @end
--spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
+-spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, error()}.
 append_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
@@ -144,7 +144,7 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 
 %% @doc Replace collection of entities associated to mixin
 %% @end
--spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, errors()}.
+-spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, error()}.
 set_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
@@ -172,7 +172,7 @@ set_mixin(Mixin, {Mimetype, Data}, Creds) ->
 
 %% @doc Disassociate entities from the given mixin
 %% @end
--spec remove_mixin(occi_category:t(), data(), erocci_creds:t()) -> ok | {error, errors()}.
+-spec remove_mixin(occi_category:t(), data(), erocci_creds:t()) -> ok | {error, error()}.
 remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
@@ -197,7 +197,7 @@ remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
 %% @doc Creates new entity
 %% @end
 -spec create(occi_category:t() | binary(), data(), erocci_creds:t()) -> 
-		    {ok, occi_entity:t()} | {error, errors()}.
+		    {ok, occi_entity:t()} | {error, error()}.
 create(Path, Data, Creds) when is_binary(Path) ->
     create(Path, Data, Creds, fun () -> erocci_backends:by_path(Path) end);
 
@@ -210,7 +210,7 @@ create(Category, Data, Creds) when ?is_category(Category) ->
 %% @todo Implement unbounded collection (?)
 %% @end
 -spec get(binary(), erocci_creds:t(), erocci_filter:t(), integer(), integer() | undefined) -> 
-		 {ok, occi_entity:t() | occi_collection:t(), erocci_node:serial()} | {error, errors()}.
+		 {ok, occi_entity:t() | occi_collection:t(), erocci_node:serial()} | {error, error()}.
 get(Path, Creds, Filter, _Start, _Number) when is_binary(Path),
 					       ?is_filter(Filter) ->
     entity(Path, Creds, read).
@@ -218,7 +218,7 @@ get(Path, Creds, Filter, _Start, _Number) when is_binary(Path),
 
 %% @doc Delete entity
 %% @end
--spec delete(binary(), erocci_creds:t()) -> ok | {error, errors()}.
+-spec delete(binary(), erocci_creds:t()) -> ok | {error, error()}.
 delete(Path, Creds) ->
     Success = fun () ->
 		      Backend = erocci_backends:by_path(Path),
@@ -230,7 +230,7 @@ delete(Path, Creds) ->
 %% @doc Execute an action on the given entity or collection
 %% @end
 -spec action(binary() | occi_category:t(), binary(), data(), erocci_creds:t()) ->
-		    {ok, erocci_type:t()} | {error, errors()}.
+		    {ok, erocci_type:t()} | {error, error()}.
 action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 					  is_binary(ActionTerm),
 					  ?is_creds(Creds) ->
@@ -250,7 +250,7 @@ action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 
 %% @doc Update entity
 %% @end
--spec update(binary(), data(), erocci_creds:t()) -> {ok, occi_entity:t()} | {error, errors()}.
+-spec update(binary(), data(), erocci_creds:t()) -> {ok, occi_entity:t()} | {error, error()}.
 update(Path, Data, Creds) when is_binary(Path),
 			      ?is_creds(Creds) ->
     case entity(Path, Creds, update) of

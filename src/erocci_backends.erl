@@ -27,11 +27,15 @@
 
 -define(SUPERVISOR, ?MODULE).
 
--record(backends_path,      { depth     :: integer(), 
+-define(REC_PATH, erocci_backends_path).
+-define(REC_CAT, erocci_backends_category).
+-define(REC_BACKEND, erocci_backends).
+
+-record(?REC_PATH,          { depth     :: integer(), 
 			      backends  :: maps:map() }).
--record(backends_category,  { id        :: occi_category:id(),
+-record(?REC_CAT,           { id        :: occi_category:id(),
 			      backends  :: [occi_backend:id()] }).
--record(backends,           { id        :: occi_backend:id(),
+-record(?REC_BACKEND,      { id        :: occi_backend:id(),
 			      backend   :: occi_backend:t() }).
 
 %%%===================================================================
@@ -75,7 +79,7 @@ umount(Backend) ->
 -spec by_path(binary()) -> erocci_backend:t().
 by_path(Path) when is_binary(Path) ->
     SplittedPath = binary:split(Path, [<<$/>>], [global, trim_all]),
-    find2(SplittedPath, mnesia:dirty_last(backends_path)).
+    find2(SplittedPath, mnesia:dirty_last(?REC_PATH)).
 
 
 %% @doc Find first backend handling category id
@@ -83,10 +87,10 @@ by_path(Path) when is_binary(Path) ->
 %% @end
 -spec by_category_id(occi_category:id()) -> erocci_backend:t().
 by_category_id(Id) ->
-    case mnesia:dirty_read(backends_category, Id) of
+    case mnesia:dirty_read(?REC_CAT, Id) of
 	[] -> 
 	    throw({not_found, Id});
-	[#backends_category{ backends=[ BackendId | _ ]}] ->
+	[#?REC_CAT{ backends=[ BackendId | _ ]}] ->
 	    by_id(BackendId)
     end.
 
@@ -110,9 +114,9 @@ by_category_id(Id) ->
 %%--------------------------------------------------------------------
 init(_) ->
     ?info("Starting erocci backends manager"),
-    case init_tables([{backends_path, ordered_set, record_info(fields, backends_path)},
-		      {backends_category, set, record_info(fields, backends_category)},
-		      {backends, set, record_info(fields, backends)}]) of
+    case init_tables([{?REC_PATH, ordered_set, record_info(fields, ?REC_PATH)},
+		      {?REC_CAT, set, record_info(fields, ?REC_CAT)},
+		      {?REC_BACKEND, set, record_info(fields, ?REC_BACKEND)}]) of
 	ok -> {ok, {{one_for_one, 1000, 6000}, []}};
 	{error, _}=Err -> Err
     end.
@@ -165,34 +169,34 @@ register_categories(Backend) ->
 register_category(Backend, Category) ->
     CatId = occi_category:id(Category),
     BackendId = erocci_backend:id(Backend),
-    Backends = case mnesia:read(backends_category, CatId) of
+    Backends = case mnesia:read(?REC_CAT, CatId) of
 		   [] -> [];
-		   [#backends_category{backends=Val}] -> Val
+		   [#?REC_CAT{backends=Val}] -> Val
 	       end,
     case lists:member(BackendId, Backends) of
 	true -> 
 	    ok;
 	false ->
-	    Record = #backends_category{ id=CatId, backends=Backends ++ [BackendId]},
+	    Record = #?REC_CAT{ id=CatId, backends=Backends ++ [BackendId]},
 	    mnesia:write(Record)
     end.
 
 
 register_path(Backend) ->
     Depth = erocci_backend:depth(Backend),
-    SameDepthBackends = case mnesia:read(backends_path, Depth) of
+    SameDepthBackends = case mnesia:read(?REC_PATH, Depth) of
 			    [] -> #{};
-			    [#backends_path{backends=Backends}] -> Backends
+			    [#?REC_PATH{backends=Backends}] -> Backends
 			end,
     BackendId = erocci_backend:id(Backend),
-    Record = #backends_path{ depth=Depth, 
-			     backends=SameDepthBackends#{ erocci_backend:mountpoint(Backend) => BackendId } },
+    Record = #?REC_PATH{ depth=Depth, 
+			 backends=SameDepthBackends#{ erocci_backend:mountpoint(Backend) => BackendId } },
     ok = mnesia:write(Record),
     register_backend(Backend).
 
 
 register_backend(Backend) ->      
-    mnesia:write(#backends{ id=erocci_backend:id(Backend), backend=Backend }).
+    mnesia:write(#?REC_BACKEND{ id=erocci_backend:id(Backend), backend=Backend }).
 
 
 rm_backend(Backend) ->
@@ -208,14 +212,14 @@ rm_backend_t(Backend) ->
 
 unregister_categories(Backend) ->
     BackendId = erocci_backend:id(Backend),
-    Fun = fun (#backends_category{id=CatId, backends=Backends}, ok) ->
+    Fun = fun (#?REC_CAT{id=CatId, backends=Backends}, ok) ->
 		  case lists:member(BackendId, Backends) of
 		      true ->
 			  case lists:delete(BackendId, Backends) of
 			      [] ->
-				  mnesia:delete({backends_category, CatId});
+				  mnesia:delete({?REC_CAT, CatId});
 			      Backends2 ->
-				  Record = #backends_category{ id=CatId, backends=Backends2 },
+				  Record = #?REC_CAT{ id=CatId, backends=Backends2 },
 				  mnesia:write(Record)
 			  end;
 		      false ->
@@ -224,7 +228,7 @@ unregister_categories(Backend) ->
 	      (_, Err) ->
 		  {error, Err}
 	  end,
-    case mnesia:foldl(Fun, ok, backends_category) of
+    case mnesia:foldl(Fun, ok, ?REC_CAT) of
 	ok -> unregister_path(Backend);
 	Err -> Err
     end.
@@ -232,12 +236,12 @@ unregister_categories(Backend) ->
 
 unregister_path(Backend) ->
     Depth = erocci_backend:depth(Backend),
-    case mnesia:read(backends_path, Depth) of
+    case mnesia:read(?REC_PATH, Depth) of
 	[] -> 
 	    {error, not_found};
 	[{_, SameDepthBackends}] ->
-	    Record = #backends_path{ depth=Depth, 
-				     backends=maps:remove(erocci_backend:mountpoint(Backend), SameDepthBackends) },
+	    Record = #?REC_PATH{ depth=Depth, 
+				 backends=maps:remove(erocci_backend:mountpoint(Backend), SameDepthBackends) },
 	    case mnesia:write(Record) of
 		ok -> unregister_backend(Backend);
 		Err -> {error, Err}
@@ -246,24 +250,26 @@ unregister_path(Backend) ->
 
 
 unregister_backend(Backend) ->
-    mnesia:delete({backends, erocci_backend:id(Backend)}).
+    mnesia:delete({?REC_BACKEND, erocci_backend:id(Backend)}).
 
 
 find2(_, '$end_of_table') ->
     throw({backend, no_root});
 
 find2(_Path, 0) ->
-    [#backends_path{ backends=#{ [] := Root }}] = mnesia:read(backends_path, 0),
+    ?debug("<1>find2(_, 0)", []),
+    [#?REC_PATH{ backends=#{ [] := Root }}] = mnesia:read(?REC_PATH, 0),
     Root;
 
 find2(Path, Depth) ->
-    case mnesia:read(backends_path, Depth) of
+    ?debug("<2>find2(~s, ~b)", [Path, Depth]),
+    case mnesia:read(?REC_PATH, Depth) of
 	[] ->
-	    find2(Path, mnesia:prev(backends_path, Depth));
+	    find2(Path, mnesia:prev(?REC_PATH, Depth));
 	[{_, Backends}] ->
 	    case lookup(lists:sublist(Path, Depth), maps:keys(Backends), Backends) of
 		false -> 
-		    find2(Path, mnesia:prev(backends_path, Depth));
+		    find2(Path, mnesia:prev(?REC_PATH, Depth));
 		BackendId -> 
 		    by_id(BackendId)
 	    end
@@ -281,31 +287,31 @@ lookup(Path, [ _Mounpoint | Tail], Backends) ->
 
 
 by_id(BackendId) ->
-    case mnesia:dirty_read(backends, BackendId) of
+    case mnesia:dirty_read(?REC_BACKEND, BackendId) of
 	[] -> throw(not_found);
-	[#backends{ backend=Backend }] -> Backend
+	[#?REC_BACKEND{ backend=Backend }] -> Backend
     end.
 
 %%%
 %%% eunit
 %%%
--ifdef(TEST).
-find_test_() ->
-    application:ensure_all_started(erocci_core),
-    add_backend(erocci_backend:new({root, dummy, [], <<"/">>})),
-    add_backend(erocci_backend:new({un, dummy, [], <<"/un">>})),
-    add_backend(erocci_backend:new({undeux, dummy, [], <<"/un/deux">>})),
-    add_backend(erocci_backend:new({undeuxtrois, dummy, [], <<"/un/deux/trois">>})),
-    add_backend(erocci_backend:new({deux, dummy, [], <<"/deux">>})),
-    [
-     ?_assertMatch(root,        erocci_backend:id(by_path(<<"/">>))),
-     ?_assertMatch(root,        erocci_backend:id(by_path(<<"/trois">>))),
-     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un">>))),
-     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/">>))),
-     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un//">>))),
-     ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/un">>))),
-     ?_assertMatch(undeux,      erocci_backend:id(by_path(<<"/un/deux/quatre">>))),
-     ?_assertMatch(undeuxtrois, erocci_backend:id(by_path(<<"/un/deux/trois/quatre">>))),
-     ?_assertMatch(deux,        erocci_backend:id(by_path(<<"/deux/un">>)))
-    ].
--endif.
+%% -ifdef(TEST).
+%% find_test_() ->
+%%     application:ensure_all_started(erocci_core),
+%%     add_backend(erocci_backend:new({root, dummy, [], <<"/">>})),
+%%     add_backend(erocci_backend:new({un, dummy, [], <<"/un">>})),
+%%     add_backend(erocci_backend:new({undeux, dummy, [], <<"/un/deux">>})),
+%%     add_backend(erocci_backend:new({undeuxtrois, dummy, [], <<"/un/deux/trois">>})),
+%%     add_backend(erocci_backend:new({deux, dummy, [], <<"/deux">>})),
+%%     [
+%%      ?_assertMatch(root,        erocci_backend:id(by_path(<<"/">>))),
+%%      ?_assertMatch(root,        erocci_backend:id(by_path(<<"/trois">>))),
+%%      ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un">>))),
+%%      ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/">>))),
+%%      ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un//">>))),
+%%      ?_assertMatch(un,          erocci_backend:id(by_path(<<"/un/un">>))),
+%%      ?_assertMatch(undeux,      erocci_backend:id(by_path(<<"/un/deux/quatre">>))),
+%%      ?_assertMatch(undeuxtrois, erocci_backend:id(by_path(<<"/un/deux/trois/quatre">>))),
+%%      ?_assertMatch(deux,        erocci_backend:id(by_path(<<"/deux/un">>)))
+%%     ].
+%% -endif.
