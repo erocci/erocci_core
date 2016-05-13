@@ -50,7 +50,7 @@ start() ->
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    erocci_sup:start_link();
+    erocci_core_sup:start_link();
 
 start(_StartType, _StartArgs) ->
     {error, badarg}.

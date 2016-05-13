@@ -11,7 +11,7 @@
 %% @doc Supervisor for the erocci_core application.
 %% @end
 
--module(erocci_sup).
+-module(erocci_core_sup).
 -author('Jean Parpaillon <jean.parpaillon@free.fr>').
 
 -behaviour(supervisor).
