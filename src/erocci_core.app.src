@@ -24,7 +24,6 @@
     erocci_acls,
     erocci_listeners,
     erocci_backends,
-    erocci_backends,
     erocci_backends_path,
     erocci_backends_category
    ]},
