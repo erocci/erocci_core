@@ -111,7 +111,7 @@ start_backends([], false) ->
 start_backends([ B | Tail ], true) ->
     case erocci_backend:is_root(B) of
 	true ->
-	    {error, dulicate_root_backend};
+	    {error, duplicate_root_backend};
 	false ->
 	    start_backends2(B, Tail, true)
     end;
@@ -122,7 +122,7 @@ start_backends([ B | Tail ], false) ->
 
 start_backends2(Backend, Others, Root) ->
     case erocci_backends:mount(Backend) of
-	{ok, _Pid} ->
+	ok ->
 	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend), erocci_backend:path(Backend)]),
 	    start_backends(Others, Root);
 	{error, _}=Err ->

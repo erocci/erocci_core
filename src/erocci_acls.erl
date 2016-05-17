@@ -56,7 +56,8 @@ check(Op, Node, Creds) ->
 %%%
 -spec init([]) -> {ok, state()}.
 init([]) ->
-    {ok, erocci_config:get(acl)}.
+    Acls = erocci_config:get(acl),
+    {ok, Acls}.
 
 
 handle_info(_Info, S) ->

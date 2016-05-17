@@ -11,10 +11,12 @@
 -export([get/1,
 	 get_raw/2]).
 
--type key() :: listeners.
--type value() :: [listener()].
-
--type listener() :: {Ref :: atom(), Handler :: atom(), Opts :: term()}.
+-type key() :: listeners
+	     | backends
+	     | acl.
+-type value() :: [ erocci_listener:t() ]
+	       | [ erocci_backend:t() ]
+	       | [ erocci_acl:t() ].
 
 %% @doc Get a configuration value, eventually pre-processed
 %% * `listeners -> [occi_listener:t()]'
@@ -22,7 +24,7 @@
 %% * `acl -> [erocci_acl:t()]'
 %% @todo Cache computed values (eg ACLs)
 %% @end
--spec get(Key :: key()) -> term().
+-spec get(Key :: key()) -> value().
 get(listeners) ->
     lists:map(fun (Config) ->
 		      occi_listener:new(Config)
@@ -44,6 +46,6 @@ get(Key) ->
 
 %% @doc Get raw value from @see application:get_env
 %% @end
--spec get_raw(Key :: key(), Default :: term()) -> value().
+-spec get_raw(Key :: key(), Default :: term()) -> term().
 get_raw(Key, Default) ->
     application:get_env(erocci, Key, Default).

@@ -68,7 +68,7 @@ mount(Backend) ->
 %% @end
 -spec umount(erocci_backend:t()) -> ok | {error, not_found}.
 umount(Backend) ->
-    case supervisor:stop_child(?SUPERVISOR, erocci_backend:id(Backend)) of
+    case supervisor:terminate_child(?SUPERVISOR, erocci_backend:id(Backend)) of
 	ok -> rm_backend(Backend);
 	{error, not_found}=Err -> Err
     end.
@@ -82,16 +82,15 @@ by_path(Path) when is_binary(Path) ->
     find2(SplittedPath, mnesia:dirty_last(?REC_PATH)).
 
 
-%% @doc Find first backend handling category id
-%% @todo Handle smarter choice when multiple backends handle the category
+%% @doc Find backends handling category id
 %% @end
--spec by_category_id(occi_category:id()) -> erocci_backend:t().
+-spec by_category_id(occi_category:id()) -> [ erocci_backend:t() ].
 by_category_id(Id) ->
     case mnesia:dirty_read(?REC_CAT, Id) of
 	[] -> 
 	    throw({not_found, Id});
-	[#?REC_CAT{ backends=[ BackendId | _ ]}] ->
-	    by_id(BackendId)
+	[#?REC_CAT{ backends=Ids}] ->
+	    [ by_id(BackendId) || BackendId <- Ids ]
     end.
 
 
@@ -161,8 +160,8 @@ register_categories(Backend) ->
 				       register_category(Backend, Category)
 			       end, Categories),
 	    register_path(Backend);
-	{error, _}=Err ->
-	    Err
+	{error, Err} ->
+	    {error, Err}
     end.
 
 

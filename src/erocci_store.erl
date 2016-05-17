@@ -124,7 +124,7 @@ delete_all(Category, Creds) ->
 
 %% @doc Associate entities to the given mixin
 %% @end
--spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, error()}.
+-spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
 append_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
@@ -135,7 +135,7 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 						end),
 	    case Ret of
 		ok -> collection(Mixin, Creds, read);
-		{error, _}=Err -> Err
+		{error, Err} -> {error, Err}
 	    end
     catch throw:Err ->
 	    Err
@@ -203,7 +203,7 @@ create(Path, Data, Creds) when is_binary(Path) ->
 
 create(Category, Data, Creds) when ?is_category(Category) ->
     Id = occi_category:id(Category),
-    create(Category, Data, Creds, fun () -> erocci_backends:by_category_id(Id) end).
+    create(Category, Data, Creds, fun () -> hd(erocci_backends:by_category_id(Id)) end).
 
 
 %% @doc Retrieve an entity or unbounded collection
@@ -234,7 +234,7 @@ delete(Path, Creds) ->
 action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 					  is_binary(ActionTerm),
 					  ?is_creds(Creds) ->
-    Fun = fun (AST) -> occi_invoke:from_map(ActionTerm, AST) end,
+    Fun = fun (AST) -> occi_invoke:from_map(AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Invoke ->
 	    case entity(Path, Creds, {action, occi_invoke:id(Invoke)}) of
@@ -364,7 +364,7 @@ collection2([], _Creds, _Op, _Filter, _Start, _Number, [], Acc) ->
 collection2([], Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) ->
     %% No more entity in this backend
     Id = occi_collection:id(Acc),
-    Start2 = case occi_category:size(Acc) of
+    Start2 = case occi_collection:size(Acc) of
 		0 -> Start;  %% still no element, apply shift on next backends
 		_ -> 0       %% got first elements, do not shift requests on next backends
 	    end,
@@ -373,9 +373,9 @@ collection2([], Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) 
 
 collection2(Nodes, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
     case collection_auth(Nodes, Creds, Op, Number, Acc) of
-	{error, _}=Err ->
+	{error, Err} ->
 	    %% Authorization required
-	    Err;
+	    {error, Err};
 	{0, Acc2} ->
 	    {ok, Acc2, undefined};
 	{Left, Acc2} ->
@@ -426,7 +426,7 @@ apply_collection(Collection, Creds, Fun) ->
 
 
 apply_collection(Collection, Creds, Fun, Acc) ->
-    apply_collection(sets:to_list(occi_collection:ids(Collection)), Creds, 
+    apply_collection(occi_collection:ids(Collection), Creds, 
 		     occi_collection:id(Collection), Fun, Acc).
 
 
@@ -493,9 +493,9 @@ create_resource_links([], _Creds, {ok, _}=Ret) ->
     Ret;
 
 create_resource_links([ Link | Links ], Creds, _Acc) ->
-    BackendFun = case occi_link:url(Link) of
+    BackendFun = case occi_link:location(Link) of
 		     undefined ->
-			 fun () -> erocci_backends:by_category_id(occi_link:kind(Link)) end;
+			 fun () -> hd(erocci_backends:by_category_id(occi_link:kind(Link))) end;
 		     Url ->
 			 fun () -> erocci_backends:by_path(Url) end
 		 end,			 

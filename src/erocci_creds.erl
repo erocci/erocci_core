@@ -22,10 +22,10 @@
 -type type() :: basic 
 	      | anonymous.
 
--record(creds, { type             :: type(),
-		 challenge        :: fun(),
-		 authenticated    :: false,
-		 data             :: term() }).
+-record(creds, { type                  :: type(),
+		 challenge             :: fun(),
+		 authenticated = false :: boolean(),
+		 data                  :: term() }).
 -type t() :: #creds{}.
 
 -type user() :: binary() | admin | anonymous.

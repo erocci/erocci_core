@@ -32,7 +32,7 @@
 %% Callbacks wrappers
 -export([model/1,
 	 get/2,
-	 create/2,
+	 create/4,
 	 update/3,
 	 action/3,
 	 delete/2,
@@ -87,7 +87,7 @@
 
 
 -callback get(Id :: binary(), State :: term()) ->
-    {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:owner(), erocci_creds:group(), erocci_node:serial()} 
+    {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:user(), erocci_creds:group(), erocci_node:serial()} 
      | {error, error()}, NewState :: term()}.
 
 
@@ -130,7 +130,7 @@
 		     Filter :: erocci_filter:t(),
 		     Start :: integer(), Number :: integer() | undefined,
 		     State :: term()) ->
-    {{ok, [{occi_entity:t(), erocci_creds:owner(), erocci_creds:group()}]}
+    {{ok, [{occi_entity:t(), erocci_creds:user(), erocci_creds:group()}], erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -244,13 +244,13 @@ get(#backend{ id=B, raw_mountpoint=Prefix }, Id) ->
 
 %% @doc Create a new entity
 %% @end
--spec create(t(), occi_entity:t()) -> {ok, erocci_entity:t()} | {error, error()}.
-create(#backend{ id=B, raw_mountpoint=Prefix }, Entity) ->
+-spec create(t(), occi_entity:t(), erocci_creds:user(), erocci_creds:group()) -> {ok, erocci_entity:t()} | {error, error()}.
+create(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
     Args = case occi_entity:id(Entity) of
 	       undefined ->
-		   [occi_entity:change_prefix(rm, Prefix, Entity)];
+		   [occi_entity:change_prefix(rm, Prefix, Entity), Owner, Group];
 	       Id ->
-		   [occi_uri:change_prefix(rm, Prefix, Id), occi_entity:change_prefix(rm, Prefix, Entity)]
+		   [occi_uri:change_prefix(rm, Prefix, Id), occi_entity:change_prefix(rm, Prefix, Entity), Owner, Group]
 	   end,
     case gen_server:call(B, {create, Args}) of
 	{ok, Entity2} ->
@@ -331,11 +331,11 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 	      CatId when ?is_category_id(CatId) -> CatId
 	  end,	      
     case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}) of
-	{ok, Items} ->
+	{ok, Items, Serial} ->
 	    Nodes = lists:map(fun ({Entity, Owner, Group}) -> 
 				       erocci_node:entity(occi_entity:change_prefix(add, Prefix, Entity), Owner, Group)
 			       end, Items),
-	    {ok, Nodes};
+	    {ok, Nodes, Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -346,13 +346,9 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 %% @doc
 %% Initializes the server
 %%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
--spec init(t()) -> {ok, term()} | {error, term()} | ignore.
+-spec init(t()) -> {ok, term()} | {stop, term()} | ignore.
 init(#backend{id=Id, handler=Mod}=Backend) ->
     try Mod:init(Backend) of
         {ok, Capabilities, BackendState} ->
@@ -370,13 +366,6 @@ init(#backend{id=Id, handler=Mod}=Backend) ->
 %% @doc
 %% Handling call messages
 %%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
@@ -389,9 +378,6 @@ handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
 %% @doc
 %% Handling cast messages
 %%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
@@ -403,9 +389,6 @@ handle_cast(_Msg, State) ->
 %% @doc
 %% Handling all non call/cast messages
 %%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
@@ -420,7 +403,6 @@ handle_info(_Info, State) ->
 %% necessary cleaning up. When it returns, the gen_server terminates
 %% with Reason. The return value is ignored.
 %%
-%% @spec terminate(Reason, State) -> void()
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, #state{mod=Mod, state=State}) ->

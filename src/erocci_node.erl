@@ -132,7 +132,7 @@ owner(N) ->
 
 %% @doc Set node owner
 %% @end
--spec owner(erocci_creds:t(), t()) -> t().
+-spec owner(erocci_creds:user(), t()) -> t().
 owner(Owner, N) when is_binary(Owner); anonymous =:= Owner ->
     N#{ owner => Owner }.
 
