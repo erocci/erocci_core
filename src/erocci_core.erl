@@ -105,8 +105,7 @@ start_backends([], true) ->
 
 start_backends([], false) ->
     ?info("No root backend, mount default one"),
-    %%start_backends2(erocci_backend:default(), [], true);
-    ok;
+    start_backends2(erocci_backend:default(), [], true);
 
 start_backends([ B | Tail ], true) ->
     case erocci_backend:is_root(B) of
