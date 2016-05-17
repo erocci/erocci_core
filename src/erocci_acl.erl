@@ -11,21 +11,22 @@
 
 -export([validate/1]).
 
--define(is_policy(X), (allow =:= X orelse deny =:= X)).
+-define(is_policy(X), ('_' =:= X orelse allow =:= X orelse deny =:= X)).
 
 -define(is_op_action(X), (is_tuple(X) andalso action =:= element(1, X))).
--define(is_op(X), (create =:= X orelse read =:= X orelse update =:= X orelse ?is_op_action(X) orelse delete =:= Op)).
+-define(is_op(X), ('_' =:= X orelse create =:= X orelse read =:= X orelse update =:= X orelse ?is_op_action(X) orelse delete =:= Op)).
 
--define(is_location(X), (is_binary(X) orelse query =:= X)).
+-define(is_location(X), ('_' =:= X orelse is_binary(X) orelse query =:= X)).
 
 -define(is_user(X), (is_binary(X) orelse admin =:= X orelse anonymous =:= X)).
 
 -define(is_group(X), (is_binary(X) orelse admin =:= X orelse anonymous =:= X)).
 
--define(is_id(X), (owner =:= X 
-		   orelse (is_tuple(X) andalso user =:= element(1, X) andalso ?is_user(element(2, X)))
+-define(is_id(X), ('_' =:= X 
+		   orelse owner =:= X 
+		   orelse (is_tuple(X) andalso user =:= element(1, X) andalso (?is_user(element(2, X)) orelse '_' =:= element(2, X)))
 		   orelse group =:= X
-		   orelse (is_tuple(X) andalso group =:= element(1, X) andalso ?is_group(element(2, X)))
+		   orelse (is_tuple(X) andalso group =:= element(1, X) andalso (?is_group(element(2, X)) orelse '_' =:= element(2, X)))
 		   orelse authenticated =:= X
 		   orelse admin =:= X)).
 

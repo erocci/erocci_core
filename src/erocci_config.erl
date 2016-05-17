@@ -27,12 +27,12 @@
 -spec get(Key :: key()) -> value().
 get(listeners) ->
     lists:map(fun (Config) ->
-		      occi_listener:new(Config)
+		      erocci_listener:new(Config)
 	      end, application:get_env(erocci_core, listeners, []));
 
 get(backends) ->
     lists:map(fun (Config) ->
-		      occi_backend:new(Config)
+		      erocci_backend:new(Config)
 	      end, application:get_env(erocci_core, backends, []));
 
 get(acl) ->
