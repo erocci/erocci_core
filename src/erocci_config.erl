@@ -28,17 +28,17 @@
 get(listeners) ->
     lists:map(fun (Config) ->
 		      occi_listener:new(Config)
-	      end, application:get_env(erocci, listeners, []));
+	      end, application:get_env(erocci_core, listeners, []));
 
 get(backends) ->
     lists:map(fun (Config) ->
 		      occi_backend:new(Config)
-	      end, application:get_env(erocci, backends, []));
+	      end, application:get_env(erocci_core, backends, []));
 
 get(acl) ->
     lists:map(fun (Acl) ->
 		      erocci_acl:validate(Acl)
-	      end, application:get_env(erocci, acl, []));
+	      end, application:get_env(erocci_core, acl, []));
 
 get(Key) ->
     get_raw(Key, undefined).
@@ -48,4 +48,4 @@ get(Key) ->
 %% @end
 -spec get_raw(Key :: key(), Default :: term()) -> term().
 get_raw(Key, Default) ->
-    application:get_env(erocci, Key, Default).
+    application:get_env(erocci_core, Key, Default).
