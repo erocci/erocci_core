@@ -62,7 +62,7 @@ collections() ->
 			  {ok, [occi_category:t()], erocci_node:serial()} | {error, error()}.
 capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
     Categories = lists:filter(fun (E) -> erocci_filter:match(E, Filter) end, occi_models:categories()),
-    Node = occi_node:capabilities(Categories),
+    Node = erocci_node:capabilities(Categories),
     auth(read, Creds, Node, fun () -> {ok, Categories, undefined} end).
 
 
