@@ -39,24 +39,24 @@
 %% @end
 -spec basic(User :: user(), Password :: binary(), Challenge :: fun()) -> t().
 basic(<<"erocci">>, <<"erocci">>, Challenge) ->
-    #creds{ type=basic, challenge=Challenge, authenticated=true };
+    #creds{ type=basic, challenge=Challenge, authenticated=true, data=#{} };
 
 basic(_User, _Password, Challenge) when is_binary(_User), is_binary(_Password) ->
-    #creds{ type=basic, challenge=Challenge, authenticated=false }.
+    #creds{ type=basic, challenge=Challenge, authenticated=false, data=#{} }.
 
 
 %% @doc Basic credentials, without authentication
 %% @end
 -spec basic(Challenge :: fun()) -> t().
 basic(Challenge) ->
-    #creds{ type=basic, challenge=Challenge, authenticated=false }.
+    #creds{ type=basic, challenge=Challenge, authenticated=false, data=#{} }.
 
 
 %% @doc Anonymous authentication
 %% @end
 -spec anonymous() -> t().
 anonymous() ->
-    #creds{ type=anonymous, authenticated=true }.
+    #creds{ type=anonymous, authenticated=true, data=#{} }.
 
 
 %% @doc
