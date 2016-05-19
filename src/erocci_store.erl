@@ -78,7 +78,7 @@ new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
 		      end,
 	    auth(create, Creds, Node, Success)
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -95,7 +95,7 @@ delete_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
 		      end,
 	    auth(delete, Creds, Node, Success)
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -138,7 +138,7 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 		{error, Err} -> {error, Err}
 	    end
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -166,7 +166,7 @@ set_mixin(Mixin, {Mimetype, Data}, Creds) ->
 		{error, _}=Err -> Err
 	    end
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -190,7 +190,7 @@ remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
 		{error, _}=Err -> Err
 	    end
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -244,7 +244,7 @@ action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 		    Err
 	    end
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -336,7 +336,7 @@ update2(Entity, {Mimetype, Data}) ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
 	    erocci_backend:update(Backend, Entity, Attributes)
     catch throw:Err ->
-	    Err
+	    {error, Err}
     end.
 
 
@@ -457,7 +457,7 @@ create(PathOrCategory, {Mimetype, Data}, Creds, BackendFun) ->
     Fun = fun (AST) -> occi_entity:from_map(PathOrCategory, AST) end,
     try	occi_rendering:parse(Mimetype, Data, Fun) of
 	Entity -> create2(occi_type:type(Entity), Entity, Creds, BackendFun)
-    catch throw:Err -> Err
+    catch throw:Err -> {error, Err}
     end.
 
 
