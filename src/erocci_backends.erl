@@ -256,12 +256,10 @@ find2(_, '$end_of_table') ->
     throw({backend, no_root});
 
 find2(_Path, 0) ->
-    ?debug("<1>find2(_, 0)", []),
     [#?REC_PATH{ backends=#{ [] := Root }}] = mnesia:read(?REC_PATH, 0),
     Root;
 
 find2(Path, Depth) ->
-    ?debug("<2>find2(~s, ~b)", [Path, Depth]),
     case mnesia:read(?REC_PATH, Depth) of
 	[] ->
 	    find2(Path, mnesia:prev(?REC_PATH, Depth));

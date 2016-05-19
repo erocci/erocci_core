@@ -349,8 +349,8 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 %% @end
 %%--------------------------------------------------------------------
 -spec init(t()) -> {ok, term()} | {stop, term()} | ignore.
-init(#backend{id=Id, handler=Mod}=Backend) ->
-    try Mod:init(Backend) of
+init(#backend{id=Id, handler=Mod, opts=Opts}) ->
+    try Mod:init(Opts) of
         {ok, Capabilities, BackendState} ->
 	    S = #state{ref=Id, mod=Mod, capabilities=Capabilities, state=BackendState},
 	    {ok, S};
