@@ -144,7 +144,7 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 
 %% @doc Replace collection of entities associated to mixin
 %% @end
--spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t()} | {error, error()}.
+-spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
 set_mixin(Mixin, {Mimetype, Data}, Creds) ->
     MixinId = occi_collection:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,

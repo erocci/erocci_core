@@ -256,17 +256,17 @@ find2(_, '$end_of_table') ->
     throw({backend, no_root});
 
 find2(_Path, 0) ->
-    [#?REC_PATH{ backends=#{ [] := Root }}] = mnesia:read(?REC_PATH, 0),
+    [#?REC_PATH{ backends=#{ [] := Root }}] = mnesia:dirty_read(?REC_PATH, 0),
     Root;
 
 find2(Path, Depth) ->
-    case mnesia:read(?REC_PATH, Depth) of
+    case mnesia:dirty_read(?REC_PATH, Depth) of
 	[] ->
-	    find2(Path, mnesia:prev(?REC_PATH, Depth));
+	    find2(Path, mnesia:dirty_prev(?REC_PATH, Depth));
 	[{_, Backends}] ->
 	    case lookup(lists:sublist(Path, Depth), maps:keys(Backends), Backends) of
 		false -> 
-		    find2(Path, mnesia:prev(?REC_PATH, Depth));
+		    find2(Path, mnesia:dirty_prev(?REC_PATH, Depth));
 		BackendId -> 
 		    by_id(BackendId)
 	    end

@@ -41,8 +41,11 @@ render_json(_Errors) ->
     <<>>.
 
 
-render_plain(Errors) ->
-    render_plain(Errors, []).
+render_plain(Errors) when is_list(Errors) ->
+    render_plain(Errors, []);
+
+render_plain(Error) ->
+    io_lib:format("error: ~p~n", [Error]).
 
 
 render_plain([], Acc) ->
