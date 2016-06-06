@@ -27,6 +27,7 @@
 	 path/1,
 	 depth/1,
 	 is_root/1,
+	 mnesia_disc_copies/1,
 	 start_link/1]).
 
 %% Callbacks wrappers
@@ -73,6 +74,11 @@
 %%%
 %%% Callbacks
 %%%
+-callback mnesia_disc_copies(Opts :: term()) ->
+    [node()].
+-optional_callbacks([mnesia_disc_copies/1]).
+
+
 -callback init(Opts :: term()) ->
     {ok, Caps :: [capability()], State :: term()} |
     {error, Reason :: term()}.
@@ -204,6 +210,19 @@ spec(#backend{ id=Id, handler=Mod}=B) ->
        start => {?MODULE, start_link, [B]},
        modules => [?MODULE, Mod] 
      }.
+
+
+%% @doc Get nodes on which a schema must exists
+%% @end
+-spec mnesia_disc_copies(t()) -> [node()].
+mnesia_disc_copies(#backend{ handler=Mod, opts=Opts }) ->
+    _ = code:ensure_loaded(Mod),
+    case erlang:function_exported(Mod, mnesia_disc_copies, 1) of
+    	true ->
+    	    Mod:mnesia_disc_copies(Opts);
+    	false ->
+    	    []
+    end.
 
 
 %% @doc Start backend

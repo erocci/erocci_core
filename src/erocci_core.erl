@@ -58,16 +58,33 @@ start(_StartType, _StartArgs) ->
 
 %% @doc Start phase `config' start listeners and backends, once
 %% supervisors have been started
+%%
+%% `mnesia' phase: creates disc copies mnesia schema and restart system, if required.
 %% @end
 -spec start_phase(Phase :: atom(), Type :: atom(), Args :: term()) -> ok | {error, term()}.
+start_phase(mnesia, normal, _Args) ->
+    ?info("erocci_core start phase: mnesia", []),
+    Nodes = lists:foldl(fun (Backend, Acc) ->
+				erocci_backend:mnesia_disc_copies(Backend) ++ Acc
+			end, [], erocci_config:get(backends)),
+    case lists:subtract(Nodes, mnesia:table_info(schema, disc_copies)) of
+	[] ->
+	    ?debug("No Mnesia schema to create", []),
+	    ok;
+	Creates ->
+	    ?debug("Create Mnesia schema on nodes: ~p", [Creates]),
+	    _ = mnesia:stop(),
+	    ok = mnesia:create_schema(Creates),
+	    restart("Mnesia schema created")
+    end;
+
 start_phase(listeners, normal, _Args) ->
+    ?info("erocci_core start phase: listeners", []),
     start_listeners(erocci_config:get(listeners));
 
 start_phase(backends, normal, _Args) ->
-    start_backends(erocci_config:get(backends), false);
-
-start_phase(_, _, _) ->
-    ok.
+    ?info("erocci_core start phase: backends", []),
+    start_backends(erocci_config:get(backends), false).
 
 
 %%--------------------------------------------------------------------
@@ -122,8 +139,19 @@ start_backends([ B | Tail ], false) ->
 start_backends2(Backend, Others, Root) ->
     case erocci_backends:mount(Backend) of
 	ok ->
-	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend), erocci_backend:path(Backend)]),
+	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend), 
+					       case erocci_backend:path(Backend) of
+						   <<>> -> <<"/">>;
+						   P -> P
+					       end]),
 	    start_backends(Others, Root);
 	{error, _}=Err ->
 	    Err
     end.
+
+
+restart(Msg) ->
+    ?info("###~n"
+	  "### RESTARTING: ~s~n"
+	  "###~n", [Msg]),
+    init:restart().

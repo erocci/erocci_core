@@ -7,7 +7,8 @@
   {mod, {application_starter, [erocci_core, []]}},
   {modules, []},
   {start_phases, [
-		  {backends, []}
+		  {mnesia, []}
+		 ,{backends, []}
 		 ,{listeners, []}
 		 ]},
   {applications, 
