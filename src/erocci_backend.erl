@@ -92,18 +92,18 @@
      | {error, error()}, NewState :: term()}.
 
 
--callback get(Id :: binary(), State :: term()) ->
+-callback get(Location :: binary(), State :: term()) ->
     {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:user(), erocci_creds:group(), erocci_node:serial()} 
      | {error, error()}, NewState :: term()}.
 
 
--callback create(Id :: binary(), Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
+-callback create(Location :: binary(), Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
     {{ok, occi_entity:t()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback create(Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
-    {{ok, occi_entity:id(), occi_entity:t()} 
+    {{ok, occi_uri:url(), occi_entity:t()} 
      | {error, error()}, NewState :: term()}.
 
 
@@ -264,21 +264,12 @@ get(#backend{ id=B, raw_mountpoint=Prefix }, Id) ->
 %% @doc Create a new entity
 %% @end
 -spec create(t(), occi_entity:t(), erocci_creds:user(), erocci_creds:group()) -> {ok, erocci_entity:t()} | {error, error()}.
-create(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
-    Args = case occi_entity:id(Entity) of
-	       undefined ->
-		   [occi_entity:change_prefix(rm, Prefix, Entity), Owner, Group];
-	       Id ->
-		   [occi_uri:change_prefix(rm, Prefix, Id), occi_entity:change_prefix(rm, Prefix, Entity), Owner, Group]
-	   end,
-    case gen_server:call(B, {create, Args}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
-	{ok, Id2, Entity2} ->
-	    Id3 = occi_uri:change_prefix(add, Prefix, Id2),
-	    {ok, occi_entity:change_prefix(add, Prefix, occi_entity:id(Id3, Entity2))};
-	{error, _}=Err -> 
-	    Err
+create(B, Entity, Owner, Group) ->
+    case occi_entity:id(Entity) of
+	undefined ->
+	    create_and_gen_id(B, Entity, Owner, Group);
+	Id ->
+	    create_with_id(B, Id, Entity, Owner, Group)
     end.
 
 
@@ -438,3 +429,29 @@ terminate(_Reason, #state{mod=Mod, state=State}) ->
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
+
+
+%%%
+%%% Priv
+%%%
+create_and_gen_id(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
+    Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
+    case gen_server:call(B, {create, [Entity1, Owner, Group]}) of
+	{ok, Location, Entity2} ->
+	    Location1 = occi_uri:change_prefix(add, Prefix, Location),
+	    Entity3 = occi_entity:change_prefix(add, Prefix, occi_entity:location(Location1, Entity2)),
+	    {ok, Entity3};
+	{error, _}=Err -> 
+	    Err
+    end.
+
+
+create_with_id(#backend{ id=B, raw_mountpoint=Prefix }, Id, Entity, Owner, Group) ->
+    Id1 = occi_uri:change_prefix(rm, Prefix, Id),
+    Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
+    case gen_server:call(B, {create, [Id1, Entity1, Owner, Group]}) of
+	{ok, Entity2} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{error, _}=Err -> 
+	    Err
+    end.

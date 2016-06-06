@@ -475,9 +475,14 @@ create(PathOrCategory, {Mimetype, Data}, Creds, BackendFun) ->
 
 create2(resource, Resource, Creds, BackendFun) ->
     Success = fun () ->
-		      erocci_backend:create(BackendFun(), canonical_links(Resource), 
-					    erocci_creds:user(Creds), erocci_creds:group(Creds)),
-		      create_resource_links(occi_resource:links(Resource), Creds, {ok, Resource})
+		      Ret = erocci_backend:create(BackendFun(), canonical_links(Resource), 
+						  erocci_creds:user(Creds), erocci_creds:group(Creds)),
+		      case Ret of
+			  {ok, Resource1} ->
+			      create_resource_links(occi_resource:links(Resource1), [], Resource1, Creds);
+			  {error, _}=Err ->
+			      Err
+		      end
 	      end,
     auth(create, Creds, erocci_node:entity(Resource), Success);
 
@@ -498,20 +503,30 @@ canonical_links(Resource) ->
     occi_resource:links(Links2, Resource).
 
 
-create_resource_links(_, _Creds, {error, _}=Err) ->
-    Err;
+create_resource_links([], Acc, Resource, _Creds) ->
+    {ok, occi_resource:links(Acc, Resource)};
 
-create_resource_links([], _Creds, {ok, _}=Ret) ->
-    Ret;
+create_resource_links([ Link | Links ], Acc, Resource, Creds) ->
+    case create_resource_link(Link, Creds) of
+	{ok, Link1} ->
+	    create_resource_links(Links, [ Link1 | Acc ], Resource, Creds);
+	{error, _}=Err ->
+	    Err
+    end.
 
-create_resource_links([ Link | Links ], Creds, _Acc) ->
+
+create_resource_link(Link, Creds) ->
     BackendFun = case occi_link:location(Link) of
 		     undefined ->
 			 fun () -> hd(erocci_backends:by_category_id(occi_link:kind(Link))) end;
 		     Url ->
 			 fun () -> erocci_backends:by_path(Url) end
-		 end,			 
-    create_resource_links(Links, Creds, create2(link, Link, Creds, BackendFun)).
+		 end,
+    Success = fun () ->
+		      erocci_backend:create(BackendFun(), Link, 
+					    erocci_creds:user(Creds), erocci_creds:group(Creds))
+	      end,
+    auth(create, Creds, erocci_node:entity(Link), Success).
 
 
 auth(Op, Creds, Node, Success) ->
