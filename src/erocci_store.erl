@@ -271,7 +271,7 @@ entity(Path, Creds, Op) ->
 	{ok, Node} ->
 	    Success = fun () ->
 			      Entity = erocci_node:data(Node),
-			      case erocci_type:type(Entity) of
+			      case occi_type:type(Entity) of
 				  resource ->
 				      resource_links(Entity, erocci_node:serial(Node), Creds);
 				  link ->
@@ -468,7 +468,8 @@ apply_collection([ Id | Tail ], Creds, MixinId, Fun, ok) ->
 create(PathOrCategory, {Mimetype, Data}, Creds, BackendFun) ->
     Fun = fun (AST) -> occi_entity:from_map(PathOrCategory, AST) end,
     try	occi_rendering:parse(Mimetype, Data, Fun) of
-	Entity -> create2(occi_type:type(Entity), Entity, Creds, BackendFun)
+	Entity -> 
+	    create2(occi_type:type(Entity), Entity, Creds, BackendFun)
     catch throw:Err -> {error, Err}
     end.
 
