@@ -15,6 +15,7 @@
 -module(erocci_store).
 
 -include("erocci_types.hrl").
+-include("erocci_log.hrl").
 -include_lib("occi/include/occi_types.hrl").
 
 -export([collections/0,
@@ -387,11 +388,13 @@ collection2({ok, Nodes, Serial}, Creds, Op, Filter, Start, Number, [ Backend | B
 	    {error, Err};
 	{0, Acc2} ->
 	    {ok, Acc2, Serial};
+	{undefined, Acc2} ->
+	    {ok, Acc2, Serial};
 	{Left, Acc2} ->
 	    %% Still trying same backend
 	    Id = occi_collection:id(Acc),
 	    collection2(erocci_backend:collection(Backend, Id, Filter, Start+Number, Left),
-			Creds, Op, Filter, 0, Left, Backends, Acc2)
+			Creds, Op, Filter, 0, Left, [ Backend | Backends ], Acc2)
     end.
 
 
