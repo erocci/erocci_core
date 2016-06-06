@@ -352,16 +352,25 @@ collection(Category, Creds, Op, Filter, Start, Number) ->
     Backends = erocci_backends:by_category_id(occi_category:id(Category)),
     Id = occi_category:id(Category),
     collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start, Number),
-		Creds, Filter, Start, Number, Backends, 
-		occi_collection:new(Id), Op).
+		Creds, Op, Filter, Start, Number, Backends, 
+		occi_collection:new(Id)).
 
 
-%% Creds=undefined for internal purpose (credentials will be checked later)
-collection2([], _Creds, _Op, _Filter, _Start, _Number, [], Acc) ->
+%% @doc Creds=undefined for internal purpose (credentials will be checked later)
+%% @todo Manage serial from multiple backends. Actually, serial is the one from latest backend
+%% @end
+collection2({error, _}=Err, _, _, _, _, _, _, _) ->
+    Err;
+
+%%collection2({ok, [], Serial}, _Creds, _Op, _Filter, _Start, _Number, [], Acc) ->
+%%    %% No more entity, no more backends
+%%    {ok, Acc, Serial};
+
+collection2({ok, [], Serial}, _Creds, _Op, _Filter, _Start, _Number, [ _Backend ], Acc) ->
     %% No more entity, no more backends
-    {ok, Acc, undefined};
+    {ok, Acc, Serial};
 
-collection2([], Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) ->
+collection2({ok, [], _Serial}, Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) ->
     %% No more entity in this backend
     Id = occi_collection:id(Acc),
     Start2 = case occi_collection:size(Acc) of
@@ -371,13 +380,13 @@ collection2([], Creds, Op, Filter, Start, Number, [ _Backend | Backends ], Acc) 
     collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start2, Number),
 		Creds, Op, Filter, Start2, Number, Backends, Acc);
 
-collection2(Nodes, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
+collection2({ok, Nodes, Serial}, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
     case collection_auth(Nodes, Creds, Op, Number, Acc) of
 	{error, Err} ->
 	    %% Authorization required
 	    {error, Err};
 	{0, Acc2} ->
-	    {ok, Acc2, undefined};
+	    {ok, Acc2, Serial};
 	{Left, Acc2} ->
 	    %% Still trying same backend
 	    Id = occi_collection:id(Acc),

@@ -343,7 +343,7 @@ unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
 		 Id :: occi_category:id() | binary(),
 		 Filter :: erocci_filter:t(),
 		 Start :: integer(), Number :: integer() | undefined) ->
-			{ok, [erocci_node:t()]} | {error, error()}.
+			{ok, [erocci_node:t()], erocci_node:serial()} | {error, error()}.
 collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) ->
     Id2 = case Id of
 	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
