@@ -257,7 +257,7 @@ find2(_, '$end_of_table') ->
 
 find2(_Path, 0) ->
     [#?REC_PATH{ backends=#{ [] := Root }}] = mnesia:dirty_read(?REC_PATH, 0),
-    Root;
+    by_id(Root);
 
 find2(Path, Depth) ->
     case mnesia:dirty_read(?REC_PATH, Depth) of
