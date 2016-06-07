@@ -499,7 +499,7 @@ canonical_links(Resource) ->
     Links2 = lists:foldl(fun (Id, Acc) when is_binary(Id) ->
 				 [ Id | Acc ];
 			     (Link, Acc) when ?is_link(Link) ->
-				 [ occi_link:id(Link) | Acc ]
+				 [ occi_link:location(Link) | Acc ]
 			 end, [], occi_resource:links(Resource)),
     occi_resource:links(Links2, Resource).
 
@@ -507,7 +507,10 @@ canonical_links(Resource) ->
 create_resource_links([], Acc, Resource, _Creds) ->
     {ok, occi_resource:links(Acc, Resource)};
 
-create_resource_links([ Link | Links ], Acc, Resource, Creds) ->
+create_resource_links([ Link | Links ], Acc, Resource, Creds) when is_binary(Link) ->
+    create_resource_links(Links, Acc, Resource, Creds);
+
+create_resource_links([ Link | Links ], Acc, Resource, Creds) when ?is_link(Link) ->
     case create_resource_link(Link, Creds) of
 	{ok, Link1} ->
 	    create_resource_links(Links, [ Link1 | Acc ], Resource, Creds);
