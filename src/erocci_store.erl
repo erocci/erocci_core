@@ -239,7 +239,7 @@ action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Invoke ->
 	    case entity(Path, Creds, {action, occi_invoke:id(Invoke)}) of
-		{ok, Entity} ->
+		{ok, Entity, _Serial} ->
 		    action2(Invoke, Entity);
 		{error, _}=Err ->
 		    Err
