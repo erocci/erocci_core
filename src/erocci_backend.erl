@@ -35,6 +35,7 @@
 	 get/2,
 	 create/4,
 	 update/3,
+	 link/4,
 	 action/3,
 	 delete/2,
 	 mixin/3,
@@ -109,6 +110,12 @@
 
 -callback update(Actual :: occi_entity:t(), Attributes :: maps:map(), State :: term()) ->
     {{ok, Entity2 :: occi_entity:t()}
+     | {error, error()}, NewState :: term()}.
+
+
+-callback link(Resource :: occi_resource:t(), 
+	       Type :: source | target, LinkId :: occi_link:id(), State :: term()) ->
+    {{ok, occi_resource:t()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -252,10 +259,11 @@ model(#backend{ id=B }) ->
 %% @doc Lookup for a node at Path
 %% @end
 -spec get(t(), binary()) -> {ok, erocci_node:t()} | {error, error()}.
-get(#backend{ id=B, raw_mountpoint=Prefix }, Id) ->
-    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Id)]}) of
+get(#backend{ id=B, raw_mountpoint=Prefix }, Location) ->
+    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Location)]}) of
 	{ok, Entity, Owner, Group, Serial} ->
-	    {ok, erocci_node:entity(Entity, Owner, Group, Serial)};
+	    Entity2 = occi_entity:change_prefix(add, Prefix, Entity),
+	    {ok, erocci_node:entity(Entity2, Owner, Group, Serial)};
 	{error, _}=Err ->
 	    Err
     end.
@@ -280,6 +288,19 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
     case gen_server:call(B, {update, [occi_entity:change_prefix(rm, Prefix, Entity), Attributes]}) of
 	{ok, Entity2} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{error, _}=Err ->
+	    Err
+    end.
+
+
+%% @doc Creates a link of type `Type' between resource and link id.
+%% @end
+-spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:id()) -> 
+		  {ok, occi_resource:t()} | {error, error()}.
+link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
+    case gen_server:call(B, {link, [occi_entity:change_prefix(rm, Prefix, Resource), Type, LinkId]}) of
+	{ok, Resource2} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Resource2)};
 	{error, _}=Err ->
 	    Err
     end.
