@@ -504,7 +504,7 @@ create2(resource, Resource, Endpoint, Creds, BackendFun) ->
 	      end,
     auth(create, Creds, erocci_node:entity(Resource), Success);
 
-create2(link, Link, Creds, Endpoint, BackendFun) ->
+create2(link, Link, Endpoint, Creds, BackendFun) ->
     try occi_link:endpoint(Endpoint, Link) of
 	Link1 ->
 	    create_link(Link1, Creds, BackendFun)
