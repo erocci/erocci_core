@@ -148,7 +148,7 @@
 
 
 %% @doc Creates new backend entry
-%% @throw {backend, term()}
+%% @throws {backend, term()}
 %% @end
 -spec new({Id :: term(), Mod :: atom(), Opts :: term(), Mountpoint :: binary() | string()}) -> t().
 new({Id, Mod, Opts, Mountpoint}) when is_list(Mountpoint) ->

@@ -24,7 +24,7 @@
 -callback terminate(atom(), term()) -> ok.
 
 %% @doc Create a listener structure
-%% @throw {listener, term()}
+%% @throws {listener, term()}
 %% @end
 -spec new({Ref :: atom(), Handler :: atom(), Opts :: term()}) -> t().
 new({Ref, Handler, Opts}) when is_atom(Handler) ->
