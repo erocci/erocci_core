@@ -256,7 +256,7 @@ action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 update(Path, Data, Creds) when is_binary(Path),
 			      ?is_creds(Creds) ->
     case entity(Path, Creds, update) of
-	{ok, Entity}->
+	{ok, Entity, _}->
 	    update2(Entity, Data);
 	{error, _}=Err ->
 	    Err
@@ -344,7 +344,7 @@ update2(Entity, {Mimetype, Data}) ->
     Fun = fun(AST) -> occi_entity:update_from_map(AST, Entity) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Attributes ->
-	    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
+	    Backend = erocci_backends:by_path(occi_entity:location(Entity)),
 	    erocci_backend:update(Backend, Entity, Attributes)
     catch throw:Err ->
 	    {error, Err}
