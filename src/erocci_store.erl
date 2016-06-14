@@ -360,7 +360,12 @@ collection(Category, Creds, Op, Filter, Start, 0) ->
     collection(Category, Creds, Op, Filter, Start, undefined);
 
 collection(Category, Creds, Op, Filter, Start, Number) ->
-    Backends = erocci_backends:by_category_id(occi_category:id(Category)),
+    Backends = case occi_category:class(Category) =:= mixin andalso occi_mixin:tag(Category) of
+		   true ->
+		       erocci_backends:all();
+		   false ->
+		       erocci_backends:by_category_id(occi_category:id(Category))
+	       end,
     Id = occi_category:id(Category),
     collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start, Number),
 		Creds, Op, Filter, Start, Number, Backends, 

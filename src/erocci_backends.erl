@@ -19,6 +19,7 @@
 -export([start_link/0,
 	 mount/1,
 	 umount/1,
+	 all/0,
 	 by_path/1,
 	 by_category_id/1]).
 
@@ -74,6 +75,15 @@ umount(Backend) ->
     end.
 
 
+%% @doc Get all backends (useful for tagging for instance)
+%% @end
+-spec all() -> [erocci_backend:t()].
+all() ->
+    lists:map(fun (#?REC_BACKEND{ backend=Backend }) ->
+		      Backend
+	      end, mnesia:dirty_match_object(#?REC_BACKEND{ _='_' })).
+
+
 %% @doc Find backend attached to mountpoint
 %% @end
 -spec by_path(binary()) -> erocci_backend:t().
@@ -88,7 +98,7 @@ by_path(Path) when is_binary(Path) ->
 by_category_id(Id) ->
     case mnesia:dirty_read(?REC_CAT, Id) of
 	[] -> 
-	    throw({not_found, Id});
+	    [];
 	[#?REC_CAT{ backends=Ids}] ->
 	    [ by_id(BackendId) || BackendId <- Ids ]
     end.
