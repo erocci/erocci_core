@@ -306,8 +306,8 @@ new_mixin2(Mixin) ->
 	undefined ->
 	    Mixin1 = occi_mixin:tag(true, Mixin),
 	    case occi_models:add_category(Mixin1) of
-		ok -> {ok, Mixin1};
-		{error, _}=Err -> Err
+		{error, _}=Err -> Err;
+		Mixin2 -> {ok, Mixin2}
 	    end;
 	Category ->
 	    case occi_category:class(Category) =:= mixin 
