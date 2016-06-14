@@ -127,7 +127,7 @@ delete_all(Category, Creds) ->
 %% @end
 -spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
 append_mixin(Mixin, {Mimetype, Data}, Creds) ->
-    MixinId = occi_collection:id(Mixin),
+    MixinId = occi_category:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
@@ -147,7 +147,7 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 %% @end
 -spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
 set_mixin(Mixin, {Mimetype, Data}, Creds) ->
-    MixinId = occi_collection:id(Mixin),
+    MixinId = occi_mixin:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	New ->
@@ -175,7 +175,7 @@ set_mixin(Mixin, {Mimetype, Data}, Creds) ->
 %% @end
 -spec remove_mixin(occi_category:t(), data(), erocci_creds:t()) -> ok | {error, error()}.
 remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
-    MixinId = occi_collection:id(Mixin),
+    MixinId = occi_category:id(Mixin),
     Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
