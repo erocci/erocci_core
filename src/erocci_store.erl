@@ -161,7 +161,7 @@ append_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
     MixinId = occi_mixin:id(Mixin),
     Fun = fun (AST) -> 
-		  Coll = occi_collection:from_map(MixinId, AST, Endpoint),
+		  Coll = occi_collection:from_map(MixinId, AST),
 		  occi_collection:endpoint(Endpoint, Coll)		      
 	  end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
@@ -173,7 +173,7 @@ set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 		    Ret =  apply_collection(ToDelete, Creds, 
 					    fun (Backend, Entity, Acc) ->
 						    case erocci_backend:unmixin(Backend, MixinId, Entity) of
-							{ok, Entity2} ->
+							{ok, Entity2, _} ->
 							    {ok, occi_collection:delete(Entity2, Acc)};
 							{error, _}=Err ->
 							    Err
@@ -184,7 +184,7 @@ set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 			    Ret2 = apply_collection(ToAdd, Creds,
 						    fun (Backend, Entity, Acc) ->
 							    case erocci_backend:mixin(Backend, Mixin, Entity) of
-								{ok, Entity2} ->
+								{ok, Entity2, _} ->
 								    {ok, occi_collection:append(Entity2, Acc)};
 								{error, _}=Err ->
 								    Err
@@ -216,13 +216,16 @@ remove_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
 	    Coll2 = case occi_collection:size(Coll) of
-			0 -> collection(Mixin, Creds, update);
-			_ -> Coll
+			0 -> 
+			    {ok, Coll0, _} = collection(Mixin, Creds, update),
+			    Coll0;
+			_ -> 
+			    Coll
 		    end,
 	    Ret = apply_collection(occi_collection:locations(Coll2), Creds,
 				   fun (Backend, Entity, Acc) ->
 					   case erocci_backend:unmixin(Backend, Mixin, Entity) of
-					       {ok, Entity2} ->
+					       {ok, Entity2, _} ->
 						   {ok, occi_collection:delete(Entity2, Acc)};
 					       {error, _}=Err ->
 						   Err
