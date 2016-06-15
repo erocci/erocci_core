@@ -24,9 +24,9 @@
 	 new_mixin/2,
 	 collection/5,
 	 delete_all/2,
-	 append_mixin/3,
-	 set_mixin/3,
-	 remove_mixin/3,
+	 append_mixin/4,
+	 set_mixin/4,
+	 remove_mixin/4,
 	 create/4,
 	 get/5,
 	 delete/2,
@@ -34,6 +34,7 @@
 	 update/3]).
 
 -type error() :: not_found
+	       | {not_found, occi_uri:url()}
 	       | method_not_allowed
 	       | forbidden
 	       | conflict
@@ -69,7 +70,7 @@ capabilities(Creds, Filter) when ?is_creds(Creds), ?is_filter(Filter) ->
 
 %% @doc Add a user-defined mixin
 %% @end
--spec new_mixin(data(), erocci_creds:t()) -> {ok, occi_mixin:t()} | {error, error()}.
+-spec new_mixin(data(), erocci_creds:t()) -> {ok, occi_mixin:t(), undefined} | {error, error()}.
 new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
     try occi_rendering:parse(Mimetype, Data, occi_mixin) of
 	Mixin ->
@@ -116,8 +117,8 @@ collection(Category, Creds, Filter, Page, Number) ->
 -spec delete_all(occi_category:t(), erocci_creds:t()) -> ok | {error, error()}.
 delete_all(Category, Creds) ->
     case collection(Category, Creds, delete) of
-	{ok, Coll} ->
-	    delete_all2(sets:to_list(occi_collection:ids(Coll)), ok);
+	{ok, Coll, _} ->
+	    delete_all2(occi_collection:locations(Coll), ok);
 	{error, _}=Err ->
 	    Err
     end.
@@ -125,17 +126,27 @@ delete_all(Category, Creds) ->
 
 %% @doc Associate entities to the given mixin
 %% @end
--spec append_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
-append_mixin(Mixin, {Mimetype, Data}, Creds) ->
+-spec append_mixin(occi_category:t(), data(), occi_uri:url(), erocci_creds:t()) -> 
+			  {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
+append_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
     MixinId = occi_category:id(Mixin),
-    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    Fun = fun (AST) -> 
+		  Coll = occi_collection:from_map(MixinId, AST),
+		  occi_collection:endpoint(Endpoint, Coll)
+	  end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
-	    Ret = apply_collection(Coll, Creds, fun (Backend, Category, Entity) ->
-							erocci_backend:mixin(Backend, Category, Entity)
-						end),
+	    Ret = apply_collection(occi_collection:locations(Coll), Creds,
+				   fun (Backend, Entity, Acc) ->
+					   case erocci_backend:mixin(Backend, Mixin, Entity) of
+					       {ok, Entity2, _Serial} ->
+						   {ok, occi_collection:append(Entity2, Acc)};
+					       {error, _}=Err ->
+						   Err
+					   end
+				   end, Coll),
 	    case Ret of
-		ok -> collection(Mixin, Creds, read);
+		{ok, Coll2} -> {ok, Coll2, undefined};
 		{error, Err} -> {error, Err}
 	    end
     catch throw:Err ->
@@ -145,25 +156,47 @@ append_mixin(Mixin, {Mimetype, Data}, Creds) ->
 
 %% @doc Replace collection of entities associated to mixin
 %% @end
--spec set_mixin(occi_category:t(), data(), erocci_creds:t()) -> {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
-set_mixin(Mixin, {Mimetype, Data}, Creds) ->
+-spec set_mixin(occi_category:t(), data(), occi_uri:url(), erocci_creds:t()) -> 
+		       {ok, occi_collection:t(), erocci_node:serial()} | {error, error()}.
+set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
     MixinId = occi_mixin:id(Mixin),
-    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    Fun = fun (AST) -> 
+		  Coll = occi_collection:from_map(MixinId, AST, Endpoint),
+		  occi_collection:endpoint(Endpoint, Coll)		      
+	  end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	New ->
-	    Actual = collection(Mixin, Creds, update),
-	    ToDelete = sets:subtract(occi_collection:ids(Actual), occi_collection:ids(New)),
-	    ToAdd = sets:subtract(occi_collection:ids(New), occi_collection:ids(Actual)),
-	    Ret = apply_collection(occi_collection:new(MixinId, ToDelete),
-				   Creds, fun (Backend, Category, Entity) ->
-						  erocci_backend:unmixin(Backend, Category, Entity)
-					  end),
-	    Ret2 = apply_collection(occi_collection:new(MixinId, ToAdd),
-				    Creds, fun (Backend, Category, Entity) ->
-						   erocci_backend:mixin(Backend, Category, Entity)
-					   end, Ret),
-	    case Ret2 of
-		ok -> collection(Mixin, Creds, read);
+	    case collection(Mixin, Creds, update) of
+		{ok, Actual, _} ->
+		    ToDelete = ordsets:subtract(occi_collection:locations(Actual), occi_collection:locations(New)),
+		    ToAdd = ordsets:subtract(occi_collection:locations(New), occi_collection:locations(Actual)),
+		    Ret =  apply_collection(ToDelete, Creds, 
+					    fun (Backend, Entity, Acc) ->
+						    case erocci_backend:unmixin(Backend, MixinId, Entity) of
+							{ok, Entity2} ->
+							    {ok, occi_collection:delete(Entity2, Acc)};
+							{error, _}=Err ->
+							    Err
+						    end
+					    end, Actual),
+		    case Ret of
+			{ok, Coll2} ->
+			    Ret2 = apply_collection(ToAdd, Creds,
+						    fun (Backend, Entity, Acc) ->
+							    case erocci_backend:mixin(Backend, Mixin, Entity) of
+								{ok, Entity2} ->
+								    {ok, occi_collection:append(Entity2, Acc)};
+								{error, _}=Err ->
+								    Err
+							    end
+						    end, Coll2),
+			    case Ret2 of
+				{ok, Coll3} -> {ok, Coll3, undefined};
+				{error, _}=Err -> Err
+			    end;
+			{error, _}=Err ->
+			    Err
+		    end;
 		{error, _}=Err -> Err
 	    end
     catch throw:Err ->
@@ -173,21 +206,30 @@ set_mixin(Mixin, {Mimetype, Data}, Creds) ->
 
 %% @doc Disassociate entities from the given mixin
 %% @end
--spec remove_mixin(occi_category:t(), data(), erocci_creds:t()) -> ok | {error, error()}.
-remove_mixin(Mixin, {Mimetype, Data}, Creds) ->
+-spec remove_mixin(occi_category:t(), data(), occi_uri:url(), erocci_creds:t()) -> ok | {error, error()}.
+remove_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
     MixinId = occi_category:id(Mixin),
-    Fun = fun (AST) -> occi_collection:from_map(MixinId, AST) end,
+    Fun = fun (AST) -> 
+		  Coll = occi_collection:from_map(MixinId, AST),
+		  occi_collection:endpoint(Endpoint, Coll)
+	  end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Coll ->
 	    Coll2 = case occi_collection:size(Coll) of
 			0 -> collection(Mixin, Creds, update);
 			_ -> Coll
 		    end,
-	    Ret = apply_collection(Coll2, Creds, fun (Backend, Category, Entity) ->
-							 erocci_backend:unmixin(Backend, Category, Entity)
-						 end),
+	    Ret = apply_collection(occi_collection:locations(Coll2), Creds,
+				   fun (Backend, Entity, Acc) ->
+					   case erocci_backend:unmixin(Backend, Mixin, Entity) of
+					       {ok, Entity2} ->
+						   {ok, occi_collection:delete(Entity2, Acc)};
+					       {error, _}=Err ->
+						   Err
+					   end
+				   end, Coll2),
 	    case Ret of
-		ok -> collection(Mixin, Creds, read);
+		{ok, Coll3} -> {ok, Coll3, undefined};
 		{error, _}=Err -> Err
 	    end
     catch throw:Err ->
@@ -231,7 +273,7 @@ delete(Path, Creds) ->
 %% @doc Execute an action on the given entity or collection
 %% @end
 -spec action(binary() | occi_category:t(), binary(), data(), erocci_creds:t()) ->
-		    {ok, erocci_type:t()} | {error, error()}.
+		    {ok, erocci_type:t(), undefined} | {error, error()}.
 action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 					  is_binary(ActionTerm),
 					  ?is_creds(Creds) ->
@@ -280,6 +322,8 @@ entity(Path, Creds, Op) ->
 			      end
 		      end,
 	    auth(Op, Creds, Node, Success);
+	{error, not_found} ->
+	    {error, {not_found, Path}};
 	{error, _}=Err ->
 	    Err
     end.
@@ -296,6 +340,8 @@ resource_links2([ LinkId | Links ], Acc, Resource, Serial, Creds) ->
     case entity(LinkId, Creds, read) of
 	{ok, Link, _} ->
 	    resource_links2(Links, [ Link | Acc ], Resource, Serial, Creds);
+	{error, not_found} ->
+	    {error, {not_found, LinkId}};
 	{error, _}=Err ->
 	    Err
     end.
@@ -307,13 +353,13 @@ new_mixin2(Mixin) ->
 	    Mixin1 = occi_mixin:tag(true, Mixin),
 	    case occi_models:add_category(Mixin1) of
 		{error, _}=Err -> Err;
-		Mixin2 -> {ok, Mixin2}
+		Mixin2 -> {ok, Mixin2, undefined}
 	    end;
 	Category ->
 	    case occi_category:class(Category) =:= mixin 
 		andalso occi_mixin:tag(Category) =:= true of
 		true ->
-		    {ok, Category};
+		    {ok, Category, undefined};
 		false ->
 		    {error, conflict}
 	    end
@@ -323,7 +369,7 @@ new_mixin2(Mixin) ->
 delete_mixin2(Id) ->
     case occi_models:category(occi_category:id(Id)) of
 	undefined ->
-	    {error, not_found};
+	    {error, {not_found, Id}};
 	Category ->
 	    case occi_category:class(Category) =:= mixin 
 		andalso occi_mixin:tag(Category) =:= true of
@@ -443,41 +489,45 @@ delete_all2(_, {error, _}=Err) ->
     Err;
 
 delete_all2([ Entity | Entities ], ok) ->
-    Id = occi_entity:id(Entity),
-    Backend = erocci_backends:by_path(Id),
-    delete_all2(Entities, erocci_backend:delete(Backend, Id)).
+    Location = occi_entity:location(Entity),
+    Backend = erocci_backends:by_path(Location),
+    delete_all2(Entities, erocci_backend:delete(Backend, Location)).
 
 
-apply_collection(Collection, Creds, Fun) ->
-    apply_collection(Collection, Creds, Fun, ok).
-
-
-apply_collection(Collection, Creds, Fun, Acc) ->
-    apply_collection(occi_collection:ids(Collection), Creds, 
-		     occi_collection:id(Collection), Fun, Acc).
-
-
-apply_collection(_, _Creds, _MixinId, _Fun, {error, _}=Err) ->
+-spec apply_collection([occi_uri:url()], erocci_creds:t(), fun(), occi_collection:t()) -> 
+			      {ok, occi_collection:t()} | {error, term()}.
+apply_collection(_, _Creds, _Fun, {error, _}=Err) ->
     Err;
 
-apply_collection([], _Creds, _MixinId, _Fun, Acc) ->
-    Acc;
+apply_collection([], _Creds, _Fun, Acc) ->
+    {ok, Acc};
 
-apply_collection([ Id | Tail ], Creds, MixinId, Fun, ok) ->
-    Backend = erocci_backends:by_path(Id),
-    case erocci_backend:get(Backend, Id) of
-	{ok, Entity} when ?is_entity(Entity) ->
-	    Node = erocci_node:entity(Entity),
-	    Success = fun() ->
-			      Ret = Fun(Backend, MixinId, Entity),
-			      apply_collection(Tail, Creds, MixinId, Fun, Ret)
-		      end,
-	    auth(update, Creds, Node, Success);
-	{ok, _} ->
-	    apply_collection(Tail, Creds, MixinId, Fun, ok);
-	{error, _}=Err ->
-	    Err
+apply_collection([ Location | Tail ], Creds, Fun, Acc) ->
+    Backend = erocci_backends:by_path(Location),
+    case occi_collection:entity(Location, Acc) of
+	undefined -> 
+	    case entity(Location, Creds, update) of
+		{ok, Entity, _} ->
+		    apply_collection_entity(Backend, Entity, Tail, Creds, Fun, Acc);
+		{error, _}=Err ->
+		    Err
+	    end;
+	Entity ->
+	    apply_collection_entity(Backend, Entity, Tail, Creds, Fun, Acc)
     end.
+
+
+apply_collection_entity(Backend, Entity, Locations, Creds, Fun, Acc) ->
+    Node = erocci_node:entity(Entity),
+    Success = fun() ->
+		      case Fun(Backend, Entity, Acc) of
+			  {ok, Acc1} ->
+			      apply_collection(Locations, Creds, Fun, Acc1);
+			  {error, _}=Err ->
+			      Err
+		      end
+	      end,
+    auth(update, Creds, Node, Success).
 
 
 create(PathOrCategory, {Mimetype, Data}, Endpoint, Creds, BackendFun) ->
@@ -495,11 +545,11 @@ create2(resource, Resource, Endpoint, Creds, BackendFun) ->
 		      Ret = erocci_backend:create(ResourceBackend, occi_resource:links([], Resource), 
 						  erocci_creds:user(Creds), erocci_creds:group(Creds)),
 		      case Ret of
-			  {ok, Resource1} ->
+			  {ok, Resource1, Serial} ->
 			      Links = lists:map(fun (Link) ->
 							occi_link:endpoint(Endpoint, Link)
 						end, occi_resource:links(Resource)),
-			      try create_resource_links(Links, [], Resource1, ResourceBackend, Creds)
+			      try create_resource_links(Links, [], Resource1, Serial, ResourceBackend, Creds)
 			      catch throw:Err ->
 				      {error, Err}
 			      end;
@@ -520,39 +570,39 @@ create2(link, Link, Endpoint, Creds, BackendFun) ->
 
 create_link(Link, Creds, BackendFun) ->
     Success = fun () ->
-		      CreateLink = fun (LinkAcc, CredsAcc) ->
+		      CreateLink = fun (LinkAcc, _, CredsAcc) ->
 					   erocci_backend:create(BackendFun(), 
 								 LinkAcc, 
 								 erocci_creds:user(CredsAcc), 
-								 erocci_creds:group(CredsAcc))end,
-		      lists:foldl(fun (Fun, {ok, Acc}) ->
-					  Fun(Acc, Creds);
+								 erocci_creds:group(CredsAcc)) end,
+		      lists:foldl(fun (Fun, {ok, Acc, SerialAcc}) ->
+					  Fun(Acc, SerialAcc, Creds);
 				      (_Fun, {error, _}=Err) ->
 					  Err
-				  end, {ok, Link}, [CreateLink, 
-						    fun link_resource_source/2,
-						    fun link_resource_target/2])		  
+				  end, {ok, Link, undefined}, [CreateLink, 
+							       fun link_resource_source/3,
+							       fun link_resource_target/3])
 	      end,
     auth(create, Creds, erocci_node:entity(Link), Success).
 
 
-create_resource_links([], Acc, Resource, ResourceBackend, _Creds) ->
-    lists:foldl(fun (Link, {ok, Acc1}) ->
+create_resource_links([], Acc, Resource, Serial, ResourceBackend, _Creds) ->
+    lists:foldl(fun (Link, {ok, Acc1, _}) ->
 			Ret = erocci_backend:link(ResourceBackend, Acc1, source, 
 						  occi_link:location(Link)),
 			case Ret of
-			    {ok, Acc2} -> {ok, occi_resource:add_link(Link, Acc2)};
+			    {ok, Acc2, SerialAcc1} -> {ok, occi_resource:add_link(Link, Acc2), SerialAcc1};
 			    {error, _}=Err -> Err
 			end;
 		    (_, {error, _}=Err) ->
 			Err
-		end, {ok, Resource}, Acc);
+		end, {ok, Resource, Serial}, Acc);
 
-create_resource_links([ Link | Links ], Acc, Resource, ResourceBackend, Creds) when ?is_link(Link) ->
+create_resource_links([ Link | Links ], Acc, Resource, Serial, ResourceBackend, Creds) when ?is_link(Link) ->
     Link1 = occi_link:set(#{<<"occi.core.source">> => occi_resource:location(Resource)}, internal, Link),
     case create_resource_link(Link1, Creds) of
-	{ok, Link2} ->
-	    create_resource_links(Links, [ Link2 | Acc ], Resource, ResourceBackend, Creds);
+	{ok, Link2, _} ->
+	    create_resource_links(Links, [ Link2 | Acc ], Resource, Serial, ResourceBackend, Creds);
 	{error, _}=Err ->
 	    Err
     end.
@@ -569,8 +619,8 @@ create_resource_link(Link, Creds) ->
 		      Ret = erocci_backend:create(BackendFun(), Link, 
 						  erocci_creds:user(Creds), erocci_creds:group(Creds)),
 		      case Ret of
-			  {ok, Link1} ->
-			      link_resource_target(Link1, Creds);
+			  {ok, Link1, _} ->
+			      link_resource_target(Link1, undefined, Creds);
 			  {error, _}=Err ->
 			      Err
 		      end
@@ -578,13 +628,13 @@ create_resource_link(Link, Creds) ->
     auth(create, Creds, erocci_node:entity(Link), Success).
 
 
-link_resource_source(Link, Creds) ->
+link_resource_source(Link, Serial, Creds) ->
     SourceLocation = occi_link:source(Link),
     case entity(SourceLocation, Creds, read) of
-	{ok, Source, _Serial} ->
+	{ok, Source, _} ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Source)),
 	    case erocci_backend:link(Backend, Source, source, occi_link:location(Link)) of
-		{ok, _Source1} -> {ok, Link};
+		{ok, _Source1, _} -> {ok, Link, Serial};
 		{error, _}=Err -> Err
 	    end;
 	{error, _}=Err ->
@@ -592,13 +642,13 @@ link_resource_source(Link, Creds) ->
     end.
 
 
-link_resource_target(Link, Creds) ->
+link_resource_target(Link, Serial, Creds) ->
     TargetLocation = occi_link:target(Link),
     case entity(TargetLocation, Creds, read) of
-	{ok, Target, _Serial} ->
+	{ok, Target, _} ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Target)),
 	    case erocci_backend:link(Backend, Target, target, occi_link:location(Link)) of
-		{ok, _Target1} -> {ok, Link};
+		{ok, _Target1, _} -> {ok, Link, Serial};
 		{error, _}=Err -> Err
 	    end;
 	{error, _}=Err ->

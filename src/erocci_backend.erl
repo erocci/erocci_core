@@ -99,28 +99,28 @@
 
 
 -callback create(Location :: binary(), Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
-    {{ok, occi_entity:t()}
+    {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback create(Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
-    {{ok, occi_uri:url(), occi_entity:t()} 
+    {{ok, occi_uri:url(), occi_entity:t(), erocci_node:serial()} 
      | {error, error()}, NewState :: term()}.
 
 
 -callback update(Actual :: occi_entity:t(), Attributes :: maps:map(), State :: term()) ->
-    {{ok, Entity2 :: occi_entity:t()}
+    {{ok, Entity2 :: occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback link(Resource :: occi_resource:t(), 
 	       Type :: source | target, LinkId :: occi_link:id(), State :: term()) ->
-    {{ok, occi_resource:t()}
+    {{ok, occi_resource:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback action(Invoke :: occi_invoke:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()}
+    {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -130,12 +130,12 @@
 
 
 -callback mixin(Mixin :: occi_mixin:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()}
+    {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback unmixin(Mixin :: occi_mixin:t(), Entity :: occi_entity:t(), State :: term()) ->
-    {{ok, occi_entity:t()}
+    {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -286,8 +286,8 @@ create(B, Entity, Owner, Group) ->
 -spec update(t(), Entity :: occi_entity:t(), Attributes :: maps:map()) -> ok | {error, error()}.
 update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
     case gen_server:call(B, {update, [occi_entity:change_prefix(rm, Prefix, Entity), Attributes]}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{ok, Entity2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -299,8 +299,8 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
 		  {ok, occi_resource:t()} | {error, error()}.
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
     case gen_server:call(B, {link, [occi_entity:change_prefix(rm, Prefix, Resource), Type, LinkId]}) of
-	{ok, Resource2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Resource2)};
+	{ok, Resource2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Resource2), Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -308,11 +308,11 @@ link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
 
 %% @doc Invoke an action on an existing entity
 %% @end
--spec action(t(), occi_invoke:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
+-spec action(t(), occi_invoke:t(), occi_entity:t()) -> {ok, occi_entity:t(), erocci_node:serial()} | {error, error()}.
 action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
     case gen_server:call(B, {action, [Invoke, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{ok, Entity2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -330,8 +330,8 @@ delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
 -spec mixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
     case gen_server:call(B, {mixin, [Mixin, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{ok, Entity2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -342,8 +342,8 @@ mixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
 -spec unmixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
     case gen_server:call(B, {unmixin, [Mixin, occi_entity:change_prefix(rm, Prefix, Entity)]}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{ok, Entity2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
 	    Err
     end.
@@ -458,10 +458,10 @@ code_change(_OldVsn, State, _Extra) ->
 create_and_gen_location(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
     Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
     case gen_server:call(B, {create, [Entity1, Owner, Group]}) of
-	{ok, Location, Entity2} ->
+	{ok, Location, Entity2, Serial} ->
 	    Location1 = occi_uri:change_prefix(add, Prefix, Location),
 	    Entity3 = occi_entity:change_prefix(add, Prefix, occi_entity:location(Location1, Entity2)),
-	    {ok, Entity3};
+	    {ok, Entity3, Serial};
 	{error, _}=Err -> 
 	    Err
     end.
@@ -471,8 +471,8 @@ create_with_location(#backend{ id=B, raw_mountpoint=Prefix }, Id, Entity, Owner,
     Id1 = occi_uri:change_prefix(rm, Prefix, Id),
     Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
     case gen_server:call(B, {create, [Id1, Entity1, Owner, Group]}) of
-	{ok, Entity2} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Entity2)};
+	{ok, Entity2, Serial} ->
+	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err -> 
 	    Err
     end.
