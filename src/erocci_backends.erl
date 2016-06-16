@@ -163,13 +163,20 @@ add_backend_t(Backend) ->
 
 
 register_categories(Backend) ->
-    Ext = erocci_backend:model(Backend),
+    Extensions = erocci_backend:models(Backend),
+    register_categories(Extensions, Backend).
+
+
+register_categories([], Backend) ->
+    register_path(Backend);
+
+register_categories([ Ext | Tail ], Backend) ->
     case occi_models:import(Ext) of
 	{ok, Categories} ->
 	    ok = lists:foreach(fun (Category) ->
 				       register_category(Backend, Category)
 			       end, Categories),
-	    register_path(Backend);
+	    register_categories(Tail, Backend);
 	{error, Err} ->
 	    {error, Err}
     end.

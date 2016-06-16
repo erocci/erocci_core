@@ -31,7 +31,7 @@
 	 start_link/1]).
 
 %% Callbacks wrappers
--export([model/1,
+-export([models/1,
 	 get/2,
 	 create/4,
 	 update/3,
@@ -88,8 +88,8 @@
 -callback terminate(State :: term()) -> ok.
 
 
--callback model(State :: term()) -> 
-    {{ok, occi_extension:t()}
+-callback models(State :: term()) -> 
+    {{ok, [occi_extension:t()]}
      | {error, error()}, NewState :: term()}.
 
 
@@ -244,13 +244,13 @@ start_link(#backend{id=Id, handler=Mod}=Backend) ->
 %%% Callback wrappers
 %%%
 
-%% @doc Get backend model
+%% @doc Get backend models
 %% @end
--spec model(t()) -> occi_extension:t().
-model(#backend{ id=B }) ->
-    case gen_server:call(B, {model, []}) of
-	{ok, Ext} ->
-	    Ext;
+-spec models(t()) -> [occi_extension:t()].
+models(#backend{ id=B }) ->
+    case gen_server:call(B, {models, []}) of
+	{ok, Extensions} ->
+	    Extensions;
 	{error, Err} ->
 	    throw(Err)
     end.
