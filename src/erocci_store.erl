@@ -88,12 +88,12 @@ new_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
 %% @end
 -spec delete_mixin(data(), erocci_creds:t()) -> ok | {error, error()}.
 delete_mixin({Mimetype, Data}, Creds) when ?is_creds(Creds) ->
-    Fun = fun(AST) -> occi_category:id_from_map(AST) end,
+    Fun = fun(AST) -> occi_mixin:from_map(AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
-	Id ->
-	    Node = erocci_node:capabilities([Id]),
+	Mixin ->
+	    Node = erocci_node:capabilities([Mixin]),
 	    Success = fun () ->
-			      delete_mixin2(Id)
+			      delete_mixin2(Mixin)
 		      end,
 	    auth(delete, Creds, Node, Success)
     catch throw:Err ->
@@ -369,8 +369,9 @@ new_mixin2(Mixin) ->
     end.
 
 
-delete_mixin2(Id) ->
-    case occi_models:category(occi_category:id(Id)) of
+delete_mixin2(Mixin) ->
+    Id = occi_mixin:id(Mixin),
+    case occi_models:category(Id) of
 	undefined ->
 	    {error, {not_found, Id}};
 	Category ->
