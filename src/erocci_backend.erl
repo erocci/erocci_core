@@ -295,15 +295,10 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
 %% @doc Creates a link of type `Type' between resource and link id.
 %% @end
 -spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:id()) -> 
-		  {ok, occi_resource:t()} | {error, error()}.
+		  ok | {error, error()}.
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
-    case gen_server:call(B, {link, [Location, Type, LinkId]}) of
-	{ok, Resource2, Serial} ->
-	    {ok, occi_entity:change_prefix(add, Prefix, Resource2), Serial};
-	{error, _}=Err ->
-	    Err
-    end.
+    gen_server:call(B, {link, [Location, Type, LinkId]}).
 
 
 %% @doc Invoke an action on an existing entity
