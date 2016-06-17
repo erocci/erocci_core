@@ -138,7 +138,7 @@ append_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 	Coll ->
 	    Ret = apply_collection(occi_collection:locations(Coll), Creds,
 				   fun (Backend, Entity, Acc) ->
-					   case erocci_backend:mixin(Backend, Mixin, Entity) of
+					   case erocci_backend:mixin(Backend, Entity, Mixin, #{}) of
 					       {ok, Entity2, _Serial} ->
 						   {ok, occi_collection:append(Entity2, Acc)};
 					       {error, _}=Err ->
