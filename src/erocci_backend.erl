@@ -115,8 +115,7 @@
 
 -callback link(Location :: occi_uri:url(), 
 	       Type :: source | target, LinkId :: occi_link:id(), State :: term()) ->
-    {{ok, occi_resource:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+    {ok | {error, error()}, NewState :: term()}.
 
 
 -callback action(Location :: occi_uri:url(), ActionId :: occi_action:id(), Attributes :: maps:map(), State :: term()) ->
@@ -125,16 +124,15 @@
 
 
 -callback delete(Id :: binary(), State :: term()) ->
-    {ok
-     | {error, error()}, NewState :: term()}.
+    {ok | {error, error()}, NewState :: term()}.
 
 
--callback mixin(Location :: occi_uri:url(), Mixin :: occi_mixin:id(), Attributes :: maps:map(), State :: term()) ->
+-callback mixin(Location :: occi_uri:url(), MixinId :: occi_mixin:t(), Attributes :: maps:map(), State :: term()) ->
     {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
--callback unmixin(Location :: occi_uri:url(), Mixin :: occi_mixin:t(), State :: term()) ->
+-callback unmixin(Location :: occi_uri:url(), MixinId :: occi_mixin:t(), State :: term()) ->
     {{ok, occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
@@ -335,8 +333,7 @@ delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
 -spec mixin(t(), occi_entity:t(), occi_mixin:t(), maps:map()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
     Location = occi_entity:change_prefix(rm, Prefix, Entity),
-    MixinId = occi_mixin:id(Mixin),
-    case gen_server:call(B, {mixin, [Location, MixinId, Attributes]}) of
+    case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -349,8 +346,7 @@ mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
 -spec unmixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
 unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
     Location = occi_entity:change_prefix(rm, Prefix, Entity),
-    MixinId = occi_mixin:id(Mixin),
-    case gen_server:call(B, {unmixin, [Location, MixinId]}) of
+    case gen_server:call(B, {unmixin, [Location, Mixin]}) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->

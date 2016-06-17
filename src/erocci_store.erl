@@ -591,11 +591,11 @@ create_link(Link, Creds, BackendFun) ->
 
 
 create_resource_links([], Acc, Resource, Serial, ResourceBackend, _Creds) ->
-    lists:foldl(fun (Link, {ok, Acc1, _}) ->
+    lists:foldl(fun (Link, {ok, Acc1, SerialAcc}) ->
 			Ret = erocci_backend:link(ResourceBackend, Acc1, source, 
 						  occi_link:location(Link)),
 			case Ret of
-			    {ok, Acc2, SerialAcc1} -> {ok, occi_resource:add_link(Link, Acc2), SerialAcc1};
+			    ok -> {ok, occi_resource:add_link(Link, Acc1), SerialAcc};
 			    {error, _}=Err -> Err
 			end;
 		    (_, {error, _}=Err) ->
@@ -638,7 +638,7 @@ link_resource_source(Link, Serial, Creds) ->
 	{ok, Source, _} ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Source)),
 	    case erocci_backend:link(Backend, Source, source, occi_link:location(Link)) of
-		{ok, _Source1, _} -> {ok, Link, Serial};
+		ok -> {ok, Link, Serial};
 		{error, _}=Err -> Err
 	    end;
 	{error, _}=Err ->
@@ -652,7 +652,7 @@ link_resource_target(Link, Serial, Creds) ->
 	{ok, Target, _} ->
 	    Backend = erocci_backends:by_path(occi_entity:id(Target)),
 	    case erocci_backend:link(Backend, Target, target, occi_link:location(Link)) of
-		{ok, _Target1, _} -> {ok, Link, Serial};
+		ok -> {ok, Link, Serial};
 		{error, _}=Err -> Err
 	    end;
 	{error, _}=Err ->
