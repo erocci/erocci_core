@@ -386,7 +386,7 @@ delete_mixin2(Mixin) ->
     
 
 action2(Invoke, Entity) ->
-    Backend = erocci_backends:by_path(occi_entity:id(Entity)),
+    Backend = erocci_backends:by_path(occi_entity:location(Entity)),
     erocci_backend:action(Backend, Invoke, Entity).
 
 
@@ -636,7 +636,7 @@ link_resource_source(Link, Serial, Creds) ->
     SourceLocation = occi_link:source(Link),
     case entity(SourceLocation, Creds, read) of
 	{ok, Source, _} ->
-	    Backend = erocci_backends:by_path(occi_entity:id(Source)),
+	    Backend = erocci_backends:by_path(occi_entity:location(Source)),
 	    case erocci_backend:link(Backend, Source, source, occi_link:location(Link)) of
 		ok -> {ok, Link, Serial};
 		{error, _}=Err -> Err
@@ -650,7 +650,7 @@ link_resource_target(Link, Serial, Creds) ->
     TargetLocation = occi_link:target(Link),
     case entity(TargetLocation, Creds, read) of
 	{ok, Target, _} ->
-	    Backend = erocci_backends:by_path(occi_entity:id(Target)),
+	    Backend = erocci_backends:by_path(occi_entity:location(Target)),
 	    case erocci_backend:link(Backend, Target, target, occi_link:location(Link)) of
 		ok -> {ok, Link, Serial};
 		{error, _}=Err -> Err

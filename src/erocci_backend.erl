@@ -64,7 +64,8 @@
 		 }).
 -type t() :: #backend{}.
 
--type backend_error() :: not_found.
+-type backend_error() :: not_found
+		       | conflict.
 -type error() :: backend_error()
 	       | occi_rendering:error().
 
@@ -360,7 +361,7 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
     Id2 = case Id of
 	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
 	      CatId when ?is_category_id(CatId) -> CatId
-	  end,	      
+	  end,
     case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}) of
 	{ok, Items, Serial} ->
 	    Nodes = lists:map(fun ({Entity, Owner, Group}) -> 
