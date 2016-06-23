@@ -328,7 +328,7 @@ delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
 %% @end
 -spec mixin(t(), occi_entity:t(), occi_mixin:t(), maps:map()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
-    Location = occi_entity:change_prefix(rm, Prefix, Entity),
+    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
     case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
@@ -339,9 +339,9 @@ mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
 
 %% @doc Remove mixin from existing entity
 %% @end
--spec unmixin(t(), occi_mixin:t(), occi_entity:t()) -> {ok, occi_entity:t()} | {error, error()}.
-unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Mixin, Entity) ->
-    Location = occi_entity:change_prefix(rm, Prefix, Entity),
+-spec unmixin(t(), occi_entity:t(), occi_mixin:t()) -> {ok, occi_entity:t()} | {error, error()}.
+unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
+    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
     case gen_server:call(B, {unmixin, [Location, Mixin]}) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};

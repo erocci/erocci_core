@@ -172,7 +172,7 @@ set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 		    ToAdd = ordsets:subtract(occi_collection:locations(New), occi_collection:locations(Actual)),
 		    Ret =  apply_collection(ToDelete, Creds, 
 					    fun (Backend, Entity, Acc) ->
-						    case erocci_backend:unmixin(Backend, MixinId, Entity) of
+						    case erocci_backend:unmixin(Backend, Entity, MixinId) of
 							{ok, Entity2, _} ->
 							    {ok, occi_collection:delete(Entity2, Acc)};
 							{error, _}=Err ->
@@ -183,7 +183,7 @@ set_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 			{ok, Coll2} ->
 			    Ret2 = apply_collection(ToAdd, Creds,
 						    fun (Backend, Entity, Acc) ->
-							    case erocci_backend:mixin(Backend, Mixin, Entity) of
+							    case erocci_backend:mixin(Backend, Entity, Mixin, #{}) of
 								{ok, Entity2, _} ->
 								    {ok, occi_collection:append(Entity2, Acc)};
 								{error, _}=Err ->
@@ -224,7 +224,7 @@ remove_mixin(Mixin, {Mimetype, Data}, Endpoint, Creds) ->
 		    end,
 	    Ret = apply_collection(occi_collection:locations(Coll2), Creds,
 				   fun (Backend, Entity, Acc) ->
-					   case erocci_backend:unmixin(Backend, Mixin, Entity) of
+					   case erocci_backend:unmixin(Backend, Entity, Mixin) of
 					       {ok, Entity2, _} ->
 						   {ok, occi_collection:delete(Entity2, Acc)};
 					       {error, _}=Err ->
