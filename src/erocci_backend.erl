@@ -65,7 +65,8 @@
 -type t() :: #backend{}.
 
 -type backend_error() :: not_found
-		       | conflict.
+		       | conflict
+		       | {internal, _}.
 -type error() :: backend_error()
 	       | occi_rendering:error().
 
@@ -401,8 +402,12 @@ init(#backend{id=Id, handler=Mod, opts=Opts}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
-    {Reply, BState2} = erlang:apply(Mod, Cmd, Args ++ [BState]),
-    {reply, Reply, State#state{mod=Mod, state=BState2}}.
+    try erlang:apply(Mod, Cmd, Args ++ [BState]) of
+	{Reply, BState2} ->
+	    {reply, Reply, State#state{state=BState2}}
+    catch Cls:Err ->
+	    {reply, {error, {internal, {Cls, Err}}}, State}
+    end.
 
 
 %%--------------------------------------------------------------------
