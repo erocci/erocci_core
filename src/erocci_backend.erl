@@ -406,6 +406,7 @@ handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
 	{Reply, BState2} ->
 	    {reply, Reply, State#state{state=BState2}}
     catch Cls:Err ->
+	    erlang:display(erlang:get_stacktrace()),
 	    {reply, {error, {internal, {Cls, Err}}}, State}
     end.
 
