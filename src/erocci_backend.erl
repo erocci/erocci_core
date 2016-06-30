@@ -48,6 +48,9 @@
 
 -type capability() :: undefined.
 
+-define(TIMEOUT, 10000).
+%%-define(TIMEOUT, infinity).
+
 -record(state, {ref             :: atom(),
                 mod             :: atom(),
 		capabilities    :: [capability()],
@@ -248,7 +251,7 @@ start_link(#backend{id=Id, handler=Mod}=Backend) ->
 %% @end
 -spec models(t()) -> [occi_extension:t()].
 models(#backend{ id=B }) ->
-    case gen_server:call(B, {models, []}) of
+    case gen_server:call(B, {models, []}, ?TIMEOUT) of
 	{ok, Extensions} ->
 	    Extensions;
 	{error, Err} ->
@@ -260,7 +263,7 @@ models(#backend{ id=B }) ->
 %% @end
 -spec get(t(), binary()) -> {ok, erocci_node:t()} | {error, error()}.
 get(#backend{ id=B, raw_mountpoint=Prefix }, Location) ->
-    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Location)]}) of
+    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Location)]}, ?TIMEOUT) of
 	{ok, Entity, Owner, Group, Serial} ->
 	    Entity2 = occi_entity:change_prefix(add, Prefix, Entity),
 	    {ok, erocci_node:entity(Entity2, Owner, Group, Serial)};
@@ -286,7 +289,7 @@ create(B, Entity, Owner, Group) ->
 -spec update(t(), Entity :: occi_entity:t(), Attributes :: maps:map()) -> ok | {error, error()}.
 update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {update, [Location, Attributes]}) of
+    case gen_server:call(B, {update, [Location, Attributes]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -300,7 +303,7 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
 		  ok | {error, error()}.
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
-    gen_server:call(B, {link, [Location, Type, LinkId]}).
+    gen_server:call(B, {link, [Location, Type, LinkId]}, ?TIMEOUT).
 
 
 %% @doc Invoke an action on an existing entity
@@ -310,7 +313,7 @@ action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
     ActionId = occi_invoke:id(Invoke),
     Attributes = occi_invoke:attributes(Invoke),
-    case gen_server:call(B, {action, [Location, ActionId, Attributes]}) of
+    case gen_server:call(B, {action, [Location, ActionId, Attributes]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -322,7 +325,7 @@ action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
 %% @end
 -spec delete(t(), Id :: binary()) -> ok | {error, error()}.
 delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
-    gen_server:call(B, {delete, [occi_uri:change_prefix(rm, Prefix, Id)]}).
+    gen_server:call(B, {delete, [occi_uri:change_prefix(rm, Prefix, Id)]}, ?TIMEOUT).
 
 
 %% @doc Add a mixin to an existing entity
@@ -330,7 +333,7 @@ delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
 -spec mixin(t(), occi_entity:t(), occi_mixin:t(), maps:map()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}) of
+    case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -343,7 +346,7 @@ mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
 -spec unmixin(t(), occi_entity:t(), occi_mixin:t()) -> {ok, occi_entity:t()} | {error, error()}.
 unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {unmixin, [Location, Mixin]}) of
+    case gen_server:call(B, {unmixin, [Location, Mixin]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -363,7 +366,7 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
 	      CatId when ?is_category_id(CatId) -> CatId
 	  end,
-    case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}) of
+    case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}, ?TIMEOUT) of
 	{ok, Items, Serial} ->
 	    Nodes = lists:map(fun ({Entity, Owner, Group}) -> 
 				       erocci_node:entity(occi_entity:change_prefix(add, Prefix, Entity), Owner, Group)
@@ -464,7 +467,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%%
 create_and_gen_location(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
     Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
-    case gen_server:call(B, {create, [Entity1, Owner, Group]}) of
+    case gen_server:call(B, {create, [Entity1, Owner, Group]}, ?TIMEOUT) of
 	{ok, Location, Entity2, Serial} ->
 	    Location1 = occi_uri:change_prefix(add, Prefix, Location),
 	    Entity3 = occi_entity:change_prefix(add, Prefix, occi_entity:location(Location1, Entity2)),
@@ -477,7 +480,7 @@ create_and_gen_location(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, 
 create_with_location(#backend{ id=B, raw_mountpoint=Prefix }, Id, Entity, Owner, Group) ->
     Id1 = occi_uri:change_prefix(rm, Prefix, Id),
     Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
-    case gen_server:call(B, {create, [Id1, Entity1, Owner, Group]}) of
+    case gen_server:call(B, {create, [Id1, Entity1, Owner, Group]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err -> 
