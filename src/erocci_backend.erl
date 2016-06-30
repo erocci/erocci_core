@@ -355,6 +355,8 @@ unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
 
 
 %% @doc Retrieve a list of entities
+%% start: integer > 0
+%% number: integer > 0 | undefined (infinite)
 %% @end
 -spec collection(t(),
 		 Id :: occi_category:id() | binary(),
