@@ -146,7 +146,7 @@
 		     Filter :: erocci_filter:t(),
 		     Start :: integer(), Number :: integer() | undefined,
 		     State :: term()) ->
-    {{ok, [{occi_entity:t(), erocci_creds:user(), erocci_creds:group()}], erocci_node:serial()}
+    {{ok, [occi_entity:id()], erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -362,18 +362,18 @@ unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
 		 Id :: occi_category:id() | binary(),
 		 Filter :: erocci_filter:t(),
 		 Start :: integer(), Number :: integer() | undefined) ->
-			{ok, [erocci_node:t()], erocci_node:serial()} | {error, error()}.
+			{ok, [occi_entity:id()], erocci_node:serial()} | {error, error()}.
 collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) ->
     Id2 = case Id of
 	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
 	      CatId when ?is_category_id(CatId) -> CatId
 	  end,
     case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}, ?TIMEOUT) of
-	{ok, Items, Serial} ->
-	    Nodes = lists:map(fun ({Entity, Owner, Group}) -> 
-				       erocci_node:entity(occi_entity:change_prefix(add, Prefix, Entity), Owner, Group)
-			       end, Items),
-	    {ok, Nodes, Serial};
+	{ok, Locations, Serial} ->
+	    Locations2 = lists:map(fun(Location) ->
+					   occi_uri:change_prefix(add, Prefix, Location)
+				   end, Locations),
+	    {ok, Locations2, Serial};
 	{error, _}=Err ->
 	    Err
     end.

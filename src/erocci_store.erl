@@ -446,8 +446,8 @@ collection2({ok, [], _Serial}, Creds, Op, Filter, Start, Number, [ _Backend | Ba
     collection2(erocci_backend:collection(hd(Backends), Id, Filter, Start2, Number),
 		Creds, Op, Filter, Start2, Number, Backends, Acc);
 
-collection2({ok, Nodes, Serial}, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
-    case collection_auth(Nodes, Creds, Op, Number, Acc) of
+collection2({ok, Locations, Serial}, Creds, Op, Filter, Start, Number, [ Backend | Backends ], Acc) ->
+    case collection_entities(Locations, Creds, Op, Number, Acc) of
 	{error, Err} ->
 	    %% Authorization required
 	    {error, Err};
@@ -463,27 +463,29 @@ collection2({ok, Nodes, Serial}, Creds, Op, Filter, Start, Number, [ Backend | B
     end.
 
 
-collection_auth(_, _, _, _, {error, {unauthorized, _}}=Err) ->
+collection_entities(_, _, _, _, {error, _}=Err) ->
     Err;
 
-collection_auth([], _Creds, _Op, Left, Acc) ->
+collection_entities([], _Creds, _Op, Left, Acc) ->
     {Left, Acc};
 
-collection_auth(_Nodes, _Creds, _Op, 0, Acc) ->
+collection_entities(_Locations, _Creds, _Op, 0, Acc) ->
     {0, Acc};
 
-collection_auth([ Node | Nodes ], Creds, Op, Left, Acc) ->
-    Left2 = if undefined =:= Left -> undefined; true -> Left-1 end,
-    Success = fun () -> 
-		      Entity = erocci_node:data(Node),
-		      collection_auth(Nodes, Creds, Op, Left2, occi_collection:append([Entity], Acc)) 
-	      end,
-    Fail = fun ({error, forbidden}) -> 
-		   collection_auth(Nodes, Creds, Op, Left, Acc);
-	       ({error, {unauthorized, _}}=Err) ->
-		   Err
-	   end,
-    auth(Op, Creds, Node, Success, Fail).
+collection_entities([ Location | Locations ], Creds, Op, Left, Acc) ->
+    case entity(Location, Creds, read) of
+	{ok, Entity, _Serial} ->
+	    Left2 = if undefined =:= Left -> undefined; true -> Left-1 end,
+	    collection_entities(Locations, Creds, Op, Left2, occi_collection:append([Entity], Acc));
+	{error, forbidden} ->
+	    collection_entities(Locations, Creds, Op, Left, Acc);
+	{error, {unauthorized, _}}=Err ->
+	    Err;
+	{error, not_found} ->
+	    collection_entities(Locations, Creds, Op, Left, Acc);
+	{error, _}=Err ->
+	    Err
+    end.
 
 
 delete_all2([], ok) ->
