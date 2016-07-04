@@ -69,11 +69,9 @@ entity(Path) when is_binary(Path) ->
      };
 
 entity(Entity) when ?is_entity(Entity) ->
-    Id = occi_entity:id(Entity),
     #{ type => entity,
-       id => Id,
        data => Entity,
-       location => Id,
+       location => occi_entity:location(Entity),
        serial => undefined
      }.
 

@@ -285,7 +285,7 @@ action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
 	Invoke ->
 	    case entity(Path, Creds, {action, occi_invoke:id(Invoke)}) of
 		{ok, Entity, _Serial} ->
-		    action2(Invoke, Entity);
+		    action2(Invoke, Entity, Creds);
 		{error, _}=Err ->
 		    Err
 	    end
@@ -302,7 +302,7 @@ update(Path, Data, Creds) when is_binary(Path),
 			      ?is_creds(Creds) ->
     case entity(Path, Creds, update) of
 	{ok, Entity, _}->
-	    update2(Entity, Data);
+	    update2(Entity, Data, Creds);
 	{error, _}=Err ->
 	    Err
     end.
@@ -317,12 +317,7 @@ entity(Path, Creds, Op) ->
 	{ok, Node} ->
 	    Success = fun () ->
 			      Entity = erocci_node:data(Node),
-			      case occi_type:type(Entity) of
-				  resource ->
-				      resource_links(Entity, erocci_node:serial(Node), Creds);
-				  link ->
-				      {ok, Entity, erocci_node:serial(Node)}
-			      end
+			      {ok, fetch_links(Entity, Creds), erocci_node:serial(Node)}
 		      end,
 	    auth(Op, Creds, Node, Success);
 	{error, not_found} ->
@@ -332,19 +327,25 @@ entity(Path, Creds, Op) ->
     end.
 
 
-resource_links(Resource, Serial, Creds) ->
-    resource_links2(occi_resource:links(Resource), [], Resource, Serial, Creds).
+fetch_links(Entity, Creds) ->
+    case occi_type:type(Entity) of
+	resource ->
+	    resource_links(occi_resource:links(Entity), [], Entity, Creds);
+	link ->
+	    Entity
+    end.
 
 
-resource_links2([], Acc, Resource, Serial, _Creds) ->
-    {ok, occi_resource:links(Acc, Resource), Serial};
+resource_links([], Acc, Resource, _Creds) ->
+    occi_resource:links(Acc, Resource);
 
-resource_links2([ LinkId | Links ], Acc, Resource, Serial, Creds) ->
+resource_links([ LinkId | Links ], Acc, Resource, Creds) ->
     case entity(LinkId, Creds, read) of
 	{ok, Link, _} ->
-	    resource_links2(Links, [ Link | Acc ], Resource, Serial, Creds);
+	    resource_links(Links, [ Link | Acc ], Resource, Creds);
 	{error, not_found} ->
-	    {error, {not_found, LinkId}};
+	    %% ignore
+	    resource_links(Links, Acc, Resource, Creds);
 	{error, _}=Err ->
 	    Err
     end.
@@ -385,17 +386,27 @@ delete_mixin2(Mixin) ->
     end.
     
 
-action2(Invoke, Entity) ->
+action2(Invoke, Entity, Creds) ->
     Backend = erocci_backends:by_path(occi_entity:location(Entity)),
-    erocci_backend:action(Backend, Invoke, Entity).
+    case erocci_backend:action(Backend, Invoke, Entity) of
+	{ok, Entity2, Serial} ->
+	    {ok, fetch_links(Entity2, Creds), Serial};
+	{error, _}=Err ->
+	    Err
+    end.
 
 
-update2(Entity, {Mimetype, Data}) ->
+update2(Entity, {Mimetype, Data}, Creds) ->
     Fun = fun(AST) -> occi_entity:update_from_map(AST, Entity) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Attributes ->
 	    Backend = erocci_backends:by_path(occi_entity:location(Entity)),
-	    erocci_backend:update(Backend, Entity, Attributes)
+	    case erocci_backend:update(Backend, occi_entity:location(Entity), Attributes) of
+		{ok, Entity2, Serial} ->
+		    {ok, fetch_links(Entity2, Creds), Serial};
+		{error, _}=Err ->
+		    Err
+	    end
     catch throw:Err ->
 	    {error, Err}
     end.
@@ -545,17 +556,16 @@ create(PathOrCategory, {Mimetype, Data}, Endpoint, Creds, BackendFun) ->
     end.
 
 
-create2(resource, Resource, Endpoint, Creds, BackendFun) ->
+create2(resource, Resource0, Endpoint, Creds, BackendFun) ->
+    Resource = occi_resource:endpoint(Endpoint, Resource0),
     Success = fun () ->
 		      ResourceBackend = BackendFun(),
 		      Ret = erocci_backend:create(ResourceBackend, occi_resource:links([], Resource), 
 						  erocci_creds:user(Creds), erocci_creds:group(Creds)),
 		      case Ret of
 			  {ok, Resource1, Serial} ->
-			      Links = lists:map(fun (Link) ->
-							occi_link:endpoint(Endpoint, Link)
-						end, occi_resource:links(Resource)),
-			      try create_resource_links(Links, [], Resource1, Serial, ResourceBackend, Creds)
+			      try create_resource_links(occi_resource:links(Resource), 
+							[], Resource1, Serial, ResourceBackend, Endpoint, Creds)
 			      catch throw:Err ->
 				      {error, Err}
 			      end;
@@ -592,7 +602,7 @@ create_link(Link, Creds, BackendFun) ->
     auth(create, Creds, erocci_node:entity(Link), Success).
 
 
-create_resource_links([], Acc, Resource, Serial, ResourceBackend, _Creds) ->
+create_resource_links([], Acc, Resource, Serial, ResourceBackend, _Endpoint, _Creds) ->
     lists:foldl(fun (Link, {ok, Acc1, SerialAcc}) ->
 			Ret = erocci_backend:link(ResourceBackend, Acc1, source, 
 						  occi_link:location(Link)),
@@ -604,17 +614,18 @@ create_resource_links([], Acc, Resource, Serial, ResourceBackend, _Creds) ->
 			Err
 		end, {ok, Resource, Serial}, Acc);
 
-create_resource_links([ Link | Links ], Acc, Resource, Serial, ResourceBackend, Creds) when ?is_link(Link) ->
+create_resource_links([ Link | Links ], Acc, Resource, Serial, ResourceBackend, Endpoint, Creds) when ?is_link(Link) ->
     Link1 = occi_link:set(#{<<"occi.core.source">> => occi_resource:location(Resource)}, internal, Link),
-    case create_resource_link(Link1, Creds) of
+    case create_resource_link(Link1, Endpoint, Creds) of
 	{ok, Link2, _} ->
-	    create_resource_links(Links, [ Link2 | Acc ], Resource, Serial, ResourceBackend, Creds);
+	    create_resource_links(Links, [ Link2 | Acc ], Resource, Serial, ResourceBackend, Endpoint, Creds);
 	{error, _}=Err ->
 	    Err
     end.
 
 
-create_resource_link(Link, Creds) ->
+create_resource_link(Link0, Endpoint, Creds) ->
+    Link = occi_link:endpoint(Endpoint, Link0),
     BackendFun = case occi_link:location(Link) of
 		     undefined ->
 			 fun () -> hd(erocci_backends:by_category_id(occi_link:kind(Link))) end;

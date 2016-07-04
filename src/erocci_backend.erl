@@ -113,13 +113,13 @@
      | {error, error()}, NewState :: term()}.
 
 
--callback update(Location :: occi_uri:url(), Attributes :: maps:map(), State :: term()) ->
+-callback update(Location :: occi_entity:location(), Attributes :: maps:map(), State :: term()) ->
     {{ok, Entity2 :: occi_entity:t(), erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
 -callback link(Location :: occi_uri:url(), 
-	       Type :: source | target, LinkId :: occi_link:id(), State :: term()) ->
+	       Type :: source | target, LinkId :: occi_link:location(), State :: term()) ->
     {ok | {error, error()}, NewState :: term()}.
 
 
@@ -146,7 +146,7 @@
 		     Filter :: erocci_filter:t(),
 		     Start :: integer(), Number :: integer() | undefined,
 		     State :: term()) ->
-    {{ok, [occi_entity:id()], erocci_node:serial()}
+    {{ok, [occi_entity:location()], erocci_node:serial()}
      | {error, error()}, NewState :: term()}.
 
 
@@ -279,17 +279,17 @@ create(B, Entity, Owner, Group) ->
     case occi_entity:location(Entity) of
 	undefined ->
 	    create_and_gen_location(B, Entity, Owner, Group);
-	Id ->
-	    create_with_location(B, Id, Entity, Owner, Group)
+	Location ->
+	    create_with_location(B, Location, Entity, Owner, Group)
     end.
 
 
 %% @doc Update an entity
 %% @end
--spec update(t(), Entity :: occi_entity:t(), Attributes :: maps:map()) -> ok | {error, error()}.
-update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
-    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {update, [Location, Attributes]}, ?TIMEOUT) of
+-spec update(t(), Location :: occi_entity:location(), Attributes :: maps:map()) -> ok | {error, error()}.
+update(#backend{ id=B, raw_mountpoint=Prefix }, Location, Attributes) ->
+    Location2 = occi_uri:change_prefix(rm, Prefix, Location),
+    case gen_server:call(B, {update, [Location2, Attributes]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err ->
@@ -299,7 +299,7 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Attributes) ->
 
 %% @doc Creates a link of type `Type' between resource and link id.
 %% @end
--spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:id()) -> 
+-spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:location()) -> 
 		  ok | {error, error()}.
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
@@ -362,7 +362,7 @@ unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
 		 Id :: occi_category:id() | binary(),
 		 Filter :: erocci_filter:t(),
 		 Start :: integer(), Number :: integer() | undefined) ->
-			{ok, [occi_entity:id()], erocci_node:serial()} | {error, error()}.
+			{ok, [occi_entity:location()], erocci_node:serial()} | {error, error()}.
 collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) ->
     Id2 = case Id of
 	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
@@ -373,6 +373,7 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 	    Locations2 = lists:map(fun(Location) ->
 					   occi_uri:change_prefix(add, Prefix, Location)
 				   end, Locations),
+	    ?debug("collections -> ~p", [Locations2]),
 	    {ok, Locations2, Serial};
 	{error, _}=Err ->
 	    Err
@@ -479,10 +480,10 @@ create_and_gen_location(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, 
     end.
 
 
-create_with_location(#backend{ id=B, raw_mountpoint=Prefix }, Id, Entity, Owner, Group) ->
-    Id1 = occi_uri:change_prefix(rm, Prefix, Id),
+create_with_location(#backend{ id=B, raw_mountpoint=Prefix }, Location, Entity, Owner, Group) ->
+    Location1 = occi_uri:change_prefix(rm, Prefix, Location),
     Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
-    case gen_server:call(B, {create, [Id1, Entity1, Owner, Group]}, ?TIMEOUT) of
+    case gen_server:call(B, {create, [Location1, Entity1, Owner, Group]}, ?TIMEOUT) of
 	{ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
 	{error, _}=Err -> 
