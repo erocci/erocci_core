@@ -373,7 +373,6 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 	    Locations2 = lists:map(fun(Location) ->
 					   occi_uri:change_prefix(add, Prefix, Location)
 				   end, Locations),
-	    ?debug("collections -> ~p", [Locations2]),
 	    {ok, Locations2, Serial};
 	{error, _}=Err ->
 	    Err
