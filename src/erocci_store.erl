@@ -277,15 +277,40 @@ delete(Path, Creds) ->
 %% @end
 -spec action(binary() | occi_category:t(), binary(), data(), erocci_creds:t()) ->
 		    {ok, erocci_type:t(), undefined} | {error, error()}.
+action(Category, ActionTerm, {Mimetype, Data}, Creds) when ?is_category(Category),
+							   is_binary(ActionTerm),
+							   ?is_creds(Creds) ->
+    Fun = fun (AST) -> occi_invoke:from_map(AST) end,
+    try occi_rendering:parse(Mimetype, Data, Fun) of
+	Invoke ->
+	    {ok, Coll0, _} = collection(Category, Creds, update),
+	    Ret = apply_collection(occi_collection:locations(Coll0), Creds,
+				   fun (Backend, Entity, Acc) ->
+					   case action2(Backend, Invoke, Entity, Creds) of
+					       {ok, Entity2, _} ->
+						   {ok, occi_collection:append(Entity2, Acc)};
+					       {error, _}=Err ->
+						   Err
+					   end
+				   end, Coll0),
+	    case Ret of
+		{ok, Coll1} -> {ok, Coll1, undefined};
+		{error, _}=Err -> Err
+	    end
+    catch throw:Err ->
+	    {error, Err}
+    end;
+						     
 action(Path, ActionTerm, {Mimetype, Data}, Creds) when is_binary(Path),
-					  is_binary(ActionTerm),
-					  ?is_creds(Creds) ->
+						       is_binary(ActionTerm),
+						       ?is_creds(Creds) ->
     Fun = fun (AST) -> occi_invoke:from_map(AST) end,
     try occi_rendering:parse(Mimetype, Data, Fun) of
 	Invoke ->
 	    case entity(Path, Creds, {action, occi_invoke:id(Invoke)}) of
 		{ok, Entity, _Serial} ->
-		    action2(Invoke, Entity, Creds);
+		    Backend = erocci_backends:by_path(occi_entity:location(Entity)),
+		    action2(Backend, Invoke, Entity, Creds);
 		{error, _}=Err ->
 		    Err
 	    end
@@ -386,8 +411,7 @@ delete_mixin2(Mixin) ->
     end.
     
 
-action2(Invoke, Entity, Creds) ->
-    Backend = erocci_backends:by_path(occi_entity:location(Entity)),
+action2(Backend, Invoke, Entity, Creds) ->
     case erocci_backend:action(Backend, Invoke, Entity) of
 	{ok, Entity2, Serial} ->
 	    {ok, fetch_links(Entity2, Creds), Serial};
@@ -414,7 +438,7 @@ update2(Entity, {Mimetype, Data}, Creds) ->
 
 %% Get full collection
 collection(Category, Creds, Op) ->
-    collection(Category, Creds, Op, [], 0, undefined).
+    collection(Category, Creds, Op, [], 1, undefined).
 
 
 collection(Category, Creds, Op, Filter, Start, 0) ->
