@@ -266,11 +266,19 @@ get(Path, Creds, Filter, _Start, _Number) when is_binary(Path),
 %% @end
 -spec delete(binary(), erocci_creds:t()) -> ok | {error, error()}.
 delete(Path, Creds) ->
-    Success = fun () ->
-		      Backend = erocci_backends:by_path(Path),
-		      erocci_backend:delete(Backend, Path)
-	      end,
-    auth(delete, Creds, erocci_node:entity(Path), Success).
+    Backend = erocci_backends:by_path(Path),
+    case erocci_backend:get(Backend, Path) of
+	{ok, Node} ->
+	    Success = case occi_type:type(erocci_node:data(Node)) of
+			  resource -> fun () -> do_delete_resource(Backend, Node) end;
+			  link -> fun () -> do_delete_link(Backend, Node) end
+		      end,
+	    auth(delete, Creds, Node, Success);
+	{error, not_found} ->
+	    {error, {not_found, Path}};
+	{error, _}=Err ->
+	    Err
+    end.
 
 
 %% @doc Execute an action on the given entity or collection
@@ -347,6 +355,27 @@ entity(Path, Creds, Op) ->
 	    auth(Op, Creds, Node, Success);
 	{error, not_found} ->
 	    {error, {not_found, Path}};
+	{error, _}=Err ->
+	    Err
+    end.
+
+
+do_delete_resource(Backend, Node) ->
+    erocci_backend:delete(Backend, erocci_node:location(Node)).
+
+
+do_delete_link(Backend, Node) ->
+    Link = erocci_node:data(Node),
+    LinkLocation = occi_link:location(Link),
+    Ret = lists:foldl(fun (_, {error, _}=Err) ->
+			      Err;
+			  ({Location, Type}, ok) ->
+			      erocci_backend:unlink(Backend, Location, Type, LinkLocation)
+		      end, ok, [{occi_link:source(Link), source},
+				occi_link:target(Link), target]),
+    case Ret of
+	ok ->
+	    erocci_backend:delete(Backend, LinkLocation);
 	{error, _}=Err ->
 	    Err
     end.

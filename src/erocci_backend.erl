@@ -36,6 +36,7 @@
 	 create/4,
 	 update/3,
 	 link/4,
+	 unlink/4,
 	 action/3,
 	 delete/2,
 	 mixin/4,
@@ -120,6 +121,12 @@
 
 -callback link(Location :: occi_uri:url(), 
 	       Type :: source | target, LinkId :: occi_link:location(), State :: term()) ->
+    {ok | {error, error()}, NewState :: term()}.
+
+
+-callback unlink(Location :: occi_uri:url(), 
+		 Type :: source | target, 
+		 LinkId :: occi_link:location(), State :: term()) ->
     {ok | {error, error()}, NewState :: term()}.
 
 
@@ -304,6 +311,15 @@ update(#backend{ id=B, raw_mountpoint=Prefix }, Location, Attributes) ->
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
     Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
     gen_server:call(B, {link, [Location, Type, LinkId]}, ?TIMEOUT).
+
+
+%% @doc Unlink an entity from a link.
+%% @end
+-spec unlink(t(), EntityId :: occi_entity:id(), Type :: source | target, LinkId :: occi_link:location()) -> 
+		    ok | {error, error()}.
+unlink(#backend{ id=B, raw_mountpoint=Prefix }, EntityId, Type, LinkId) ->
+    Location = occi_uri:change_prefix(rm, Prefix, EntityId),
+    gen_server:call(B, {unlink, [Location, Type, LinkId]}, ?TIMEOUT).
 
 
 %% @doc Invoke an action on an existing entity
