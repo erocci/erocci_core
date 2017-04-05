@@ -1,13 +1,13 @@
 %%%-------------------------------------------------------------------
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %%% @copyright (c) 2013-2016 Jean Parpaillon
-%%% 
+%%%
 %%% This file is provided to you under the license described
 %%% in the file LICENSE at the root of the project.
 %%%
 %%% You can also download the LICENSE file from the following URL:
 %%% https://github.com/erocci/erocci/blob/master/LICENSE
-%%% 
+%%%
 %%% @doc Sueprvisor for listeners (protocol handlers)
 %%%
 %%% @end
@@ -20,8 +20,8 @@
 -include("erocci.hrl").
 
 %% API
--export([start_link/0, 
-	 add/1]).
+-export([start_link/0,
+         add/1]).
 
 %% Supervisor callbacks
 -export([init/1]).
@@ -40,14 +40,14 @@
 %% @end
 %%--------------------------------------------------------------------
 start_link() ->
-    supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
+  supervisor:start_link({local, ?SUPERVISOR}, ?MODULE, []).
 
 
 %% @doc Add a new listener
 %% @end
 -spec add(occi_listener:t()) -> {ok, pid()} | {error, term()}.
 add(L) ->
-    supervisor:start_child(?SUPERVISOR, erocci_listener:spec(L)).
+  supervisor:start_child(?SUPERVISOR, erocci_listener:spec(L)).
 
 
 %%%===================================================================
@@ -68,8 +68,8 @@ add(L) ->
 %% @end
 %%--------------------------------------------------------------------
 init(_) ->
-    ?info("Starting erocci listeners manager"),
-    {ok, {{one_for_one, 1000, 6000}, []}}.
+  ?info("Starting erocci listeners manager"),
+  {ok, {{one_for_one, 1000, 6000}, []}}.
 
 %%%===================================================================
 %%% Internal functions

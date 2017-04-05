@@ -7,11 +7,11 @@
   {mod, {application_starter, [erocci_core, []]}},
   {modules, []},
   {start_phases, [
-		  {mnesia, []}
-		 ,{backends, []}
-		 ,{listeners, []}
-		 ]},
-  {applications, 
+                  {mnesia, []}
+                 ,{backends, []}
+                 ,{listeners, []}
+                 ]},
+  {applications,
    [
     kernel,
     stdlib,
@@ -20,7 +20,7 @@
     mnesia,
     occi
    ]},
-  {registered, 
+  {registered,
    [
     erocci_acls,
     erocci_listeners,
@@ -28,7 +28,7 @@
     erocci_backends_path,
     erocci_backends_category
    ]},
-  {env, 
+  {env,
    [
     {listeners, []},
     {backends, []},

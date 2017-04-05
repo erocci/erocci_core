@@ -1,12 +1,12 @@
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %%% @copyright (c) 2013-2016 Jean Parpaillon
-%%% 
+%%%
 %%% This file is provided to you under the license described
 %%% in the file LICENSE at the root of the project.
 %%%
 %%% You can also download the LICENSE file from the following URL:
 %%% https://github.com/erocci/erocci/blob/master/LICENSE
-%%% 
+%%%
 %%% @doc
 %%%
 %%% @end
@@ -20,28 +20,28 @@
 
 %% API
 -export([new/1,
-	 default/0,
-	 spec/1,
-	 id/1,
-	 mountpoint/1,
-	 path/1,
-	 depth/1,
-	 is_root/1,
-	 mnesia_disc_copies/1,
-	 start_link/1]).
+         default/0,
+         spec/1,
+         id/1,
+         mountpoint/1,
+         path/1,
+         depth/1,
+         is_root/1,
+         mnesia_disc_copies/1,
+         start_link/1]).
 
 %% Callbacks wrappers
 -export([models/1,
-	 get/2,
-	 create/4,
-	 update/3,
-	 link/4,
-	 unlink/4,
-	 action/3,
-	 delete/2,
-	 mixin/4,
-	 unmixin/3,
-	 collection/5]).
+         get/2,
+         create/4,
+         update/3,
+         link/4,
+         unlink/4,
+         action/3,
+         delete/2,
+         mixin/4,
+         unmixin/3,
+         collection/5]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -54,107 +54,107 @@
 
 -record(state, {ref             :: atom(),
                 mod             :: atom(),
-		capabilities    :: [capability()],
-		model           :: occi_extension:t(),
+                capabilities    :: [capability()],
+                model           :: occi_extension:t(),
                 state           :: term()}).
 
 -type id() :: term().
 -record(backend, { id             :: id(),
-		   handler        :: atom(),
-		   opts           :: term(),
-		   mountpoint     :: [binary()],
-		   raw_mountpoint :: binary(),
-		   depth          :: integer()
-		 }).
+                   handler        :: atom(),
+                   opts           :: term(),
+                   mountpoint     :: [binary()],
+                   raw_mountpoint :: binary(),
+                   depth          :: integer()
+                 }).
 -type t() :: #backend{}.
 
 -type backend_error() :: not_found
-		       | conflict
-		       | {internal, _}.
+                       | conflict
+                       | {internal, _}.
 -type error() :: backend_error()
-	       | occi_rendering:error().
+               | occi_rendering:error().
 
 -export_type([t/0,
-	      capability/0,
-	      error/0]).
+              capability/0,
+              error/0]).
 
 %%%
 %%% Callbacks
 %%%
 -callback mnesia_disc_copies(Opts :: term()) ->
-    [node()].
+  [node()].
 -optional_callbacks([mnesia_disc_copies/1]).
 
 
 -callback init(Opts :: term()) ->
-    {ok, Caps :: [capability()], State :: term()} |
-    {error, Reason :: term()}.
+  {ok, Caps :: [capability()], State :: term()} |
+  {error, Reason :: term()}.
 
 
 -callback terminate(State :: term()) -> ok.
 
 
--callback models(State :: term()) -> 
-    {{ok, [occi_extension:t()]}
-     | {error, error()}, NewState :: term()}.
+-callback models(State :: term()) ->
+  {{ok, [occi_extension:t()]}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback get(Location :: binary(), State :: term()) ->
-    {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:user(), erocci_creds:group(), erocci_node:serial()} 
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_collection:t() | occi_entity:t(), erocci_creds:user(), erocci_creds:group(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback create(Location :: binary(), Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
-    {{ok, occi_entity:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback create(Entity :: occi_entity:t(), Owner :: erocci_creds:user(), Group :: erocci_creds:group(), State :: term()) ->
-    {{ok, occi_uri:url(), occi_entity:t(), erocci_node:serial()} 
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_uri:url(), occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback update(Location :: occi_entity:location(), Attributes :: maps:map(), State :: term()) ->
-    {{ok, Entity2 :: occi_entity:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+  {{ok, Entity2 :: occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
--callback link(Location :: occi_uri:url(), 
-	       Type :: source | target, LinkId :: occi_link:location(), State :: term()) ->
-    {ok | {error, error()}, NewState :: term()}.
+-callback link(Location :: occi_uri:url(),
+               Type :: source | target, LinkId :: occi_link:location(), State :: term()) ->
+  {ok | {error, error()}, NewState :: term()}.
 
 
--callback unlink(Location :: occi_uri:url(), 
-		 Type :: source | target, 
-		 LinkId :: occi_link:location(), State :: term()) ->
-    {ok | {error, error()}, NewState :: term()}.
+-callback unlink(Location :: occi_uri:url(),
+                 Type :: source | target,
+                 LinkId :: occi_link:location(), State :: term()) ->
+  {ok | {error, error()}, NewState :: term()}.
 
 
 -callback action(Location :: occi_uri:url(), ActionId :: occi_action:id(), Attributes :: maps:map(), State :: term()) ->
-    {{ok, occi_entity:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback delete(Id :: binary(), State :: term()) ->
-    {ok | {error, error()}, NewState :: term()}.
+  {ok | {error, error()}, NewState :: term()}.
 
 
 -callback mixin(Location :: occi_uri:url(), MixinId :: occi_mixin:t(), Attributes :: maps:map(), State :: term()) ->
-    {{ok, occi_entity:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback unmixin(Location :: occi_uri:url(), MixinId :: occi_mixin:t(), State :: term()) ->
-    {{ok, occi_entity:t(), erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+  {{ok, occi_entity:t(), erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 -callback collection(Id :: occi_category:id() | binary(),
-		     Filter :: erocci_filter:t(),
-		     Start :: integer(), Number :: integer() | undefined,
-		     State :: term()) ->
-    {{ok, [occi_entity:location()], erocci_node:serial()}
-     | {error, error()}, NewState :: term()}.
+                     Filter :: erocci_filter:t(),
+                     Start :: integer(), Number :: integer() | undefined,
+                     State :: term()) ->
+  {{ok, [occi_entity:location()], erocci_node:serial()}
+   | {error, error()}, NewState :: term()}.
 
 
 %% @doc Creates new backend entry
@@ -162,95 +162,95 @@
 %% @end
 -spec new({Id :: term(), Mod :: atom(), Opts :: term(), Mountpoint :: binary() | string()}) -> t().
 new({Id, Mod, Opts, Mountpoint}) when is_list(Mountpoint) ->
-    new({Id, Mod, Opts, list_to_binary(Mountpoint)});
+  new({Id, Mod, Opts, list_to_binary(Mountpoint)});
 
 new({Id, Mod, Opts, << $/, _/binary >> = Path}) when is_atom(Mod) ->
-    Mountpoint = binary:split(Path, [<<$/>>], [global, trim_all]),
-    #backend{ id=Id, handler=Mod, opts=Opts, 
-	      raw_mountpoint=occi_utils:normalize(Path),
-	      depth=length(Mountpoint),
-	      mountpoint=Mountpoint };
+  Mountpoint = binary:split(Path, [<<$/>>], [global, trim_all]),
+  #backend{ id=Id, handler=Mod, opts=Opts,
+            raw_mountpoint=occi_utils:normalize(Path),
+            depth=length(Mountpoint),
+            mountpoint=Mountpoint };
 
 new({_Id, Mod, _Opts, Mountpoint}) when is_binary(Mountpoint), is_atom(Mod) ->
-    throw({backend, {invalid_mountpoint, Mountpoint}});
+  throw({backend, {invalid_mountpoint, Mountpoint}});
 
 new(Config) ->
-    throw({backend, {invalid_config, Config}}).
+  throw({backend, {invalid_config, Config}}).
 
 
 %% @doc Default backend
 %% @end
 default() ->
-    new({default, erocci_backend_mnesia, [], <<"/">>}).
+  new({default, erocci_backend_mnesia, [], <<"/">>}).
 
 
-%% @doc 
+%% @doc
 %% @end
 -spec id(t()) -> id().
 id(#backend{ id=Id }) ->
-    Id.
+  Id.
 
 
 %% @doc
 %% @end
 -spec mountpoint(t()) -> [binary()].
 mountpoint(#backend{ mountpoint=Mountpoint }) ->
-    Mountpoint.
+  Mountpoint.
 
 
 %% @doc
 %% @end
 -spec path(t()) -> binary().
 path(#backend{ raw_mountpoint=Raw }) ->
-    Raw.
+  Raw.
 
 
 %% @doc Return mountpoint length
 %% @end
 -spec depth(t()) -> integer().
 depth(#backend{ depth=Depth }) ->
-    Depth.
+  Depth.
 
 
 %% @doc is root backend ?
 %% @end
 -spec is_root(t()) -> boolean().
 is_root(#backend{ depth=Depth }) ->
-    0 =:= Depth.
+  0 =:= Depth.
 
 
-%% @doc 
+%% @doc
 %% @end
 -spec spec(t()) -> supervisor:child_spec().
 spec(#backend{ id=Id, handler=Mod}=B) ->
-    #{ id => Id,
-       start => {?MODULE, start_link, [B]},
-       modules => [?MODULE, Mod] 
-     }.
+  #{ id => Id,
+     start => {?MODULE, start_link, [B]},
+     modules => [?MODULE, Mod]
+   }.
 
 
 %% @doc Get nodes on which a schema must exists
 %% @end
 -spec mnesia_disc_copies(t()) -> [node()].
 mnesia_disc_copies(#backend{ handler=Mod, opts=Opts }) ->
-    _ = code:ensure_loaded(Mod),
-    case erlang:function_exported(Mod, mnesia_disc_copies, 1) of
-    	true ->
-    	    Mod:mnesia_disc_copies(Opts);
-    	false ->
-    	    []
-    end.
+  _ = code:ensure_loaded(Mod),
+  case erlang:function_exported(Mod, mnesia_disc_copies, 1) of
+    true ->
+      Mod:mnesia_disc_copies(Opts);
+    false ->
+      []
+  end.
 
 
 %% @doc Start backend
 %% @end
 -spec start_link(t()) -> {ok, pid()} | ignore | {error, term()}.
 start_link(#backend{id=Id, handler=Mod}=Backend) ->
-    ?info("Starting storage backend ~p (~s)", [Id, Mod]),
-    gen_server:start_link({local, Id}, ?MODULE, Backend, []).
+  ?info("Starting storage backend ~p (~s)", [Id, Mod]),
+  gen_server:start_link({local, Id}, ?MODULE, Backend, []).
 
 
-%%% 
+%%%
 %%% Callback wrappers
 %%%
 
@@ -258,116 +258,116 @@ start_link(#backend{id=Id, handler=Mod}=Backend) ->
 %% @end
 -spec models(t()) -> [occi_extension:t()].
 models(#backend{ id=B }) ->
-    case gen_server:call(B, {models, []}, ?TIMEOUT) of
-	{ok, Extensions} ->
+  case gen_server:call(B, {models, []}, ?TIMEOUT) of
+    {ok, Extensions} ->
 	    Extensions;
-	{error, Err} ->
+    {error, Err} ->
 	    throw(Err)
-    end.
+  end.
 
 
 %% @doc Lookup for a node at Path
 %% @end
 -spec get(t(), binary()) -> {ok, erocci_node:t()} | {error, error()}.
 get(#backend{ id=B, raw_mountpoint=Prefix }, Location) ->
-    case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Location)]}, ?TIMEOUT) of
-	{ok, Entity, Owner, Group, Serial} ->
+  case gen_server:call(B, {get, [occi_uri:change_prefix(rm, Prefix, Location)]}, ?TIMEOUT) of
+    {ok, Entity, Owner, Group, Serial} ->
 	    Entity2 = occi_entity:change_prefix(add, Prefix, Entity),
 	    {ok, erocci_node:entity(Entity2, Owner, Group, Serial)};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %% @doc Create a new entity
 %% @end
 -spec create(t(), occi_entity:t(), erocci_creds:user(), erocci_creds:group()) -> {ok, erocci_entity:t()} | {error, error()}.
 create(B, Entity, Owner, Group) ->
-    case occi_entity:location(Entity) of
-	undefined ->
+  case occi_entity:location(Entity) of
+    undefined ->
 	    create_and_gen_location(B, Entity, Owner, Group);
-	Location ->
+    Location ->
 	    create_with_location(B, Location, Entity, Owner, Group)
-    end.
+  end.
 
 
 %% @doc Update an entity
 %% @end
 -spec update(t(), Location :: occi_entity:location(), Attributes :: maps:map()) -> ok | {error, error()}.
 update(#backend{ id=B, raw_mountpoint=Prefix }, Location, Attributes) ->
-    Location2 = occi_uri:change_prefix(rm, Prefix, Location),
-    case gen_server:call(B, {update, [Location2, Attributes]}, ?TIMEOUT) of
-	{ok, Entity2, Serial} ->
+  Location2 = occi_uri:change_prefix(rm, Prefix, Location),
+  case gen_server:call(B, {update, [Location2, Attributes]}, ?TIMEOUT) of
+    {ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %% @doc Creates a link of type `Type' between resource and link id.
 %% @end
--spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:location()) -> 
-		  ok | {error, error()}.
+-spec link(t(), Resource :: occi_resource:t(), Type :: source | target, LinkId :: occi_link:location()) ->
+              ok | {error, error()}.
 link(#backend{ id=B, raw_mountpoint=Prefix }, Resource, Type, LinkId) ->
-    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
-    gen_server:call(B, {link, [Location, Type, LinkId]}, ?TIMEOUT).
+  Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Resource)),
+  gen_server:call(B, {link, [Location, Type, LinkId]}, ?TIMEOUT).
 
 
 %% @doc Unlink an entity from a link.
 %% @end
--spec unlink(t(), EntityId :: occi_entity:id(), Type :: source | target, LinkId :: occi_link:location()) -> 
-		    ok | {error, error()}.
+-spec unlink(t(), EntityId :: occi_entity:id(), Type :: source | target, LinkId :: occi_link:location()) ->
+                ok | {error, error()}.
 unlink(#backend{ id=B, raw_mountpoint=Prefix }, EntityId, Type, LinkId) ->
-    Location = occi_uri:change_prefix(rm, Prefix, EntityId),
-    gen_server:call(B, {unlink, [Location, Type, LinkId]}, ?TIMEOUT).
+  Location = occi_uri:change_prefix(rm, Prefix, EntityId),
+  gen_server:call(B, {unlink, [Location, Type, LinkId]}, ?TIMEOUT).
 
 
 %% @doc Invoke an action on an existing entity
 %% @end
 -spec action(t(), occi_invoke:t(), occi_entity:t()) -> {ok, occi_entity:t(), erocci_node:serial()} | {error, error()}.
 action(#backend{ id=B, raw_mountpoint=Prefix }, Invoke, Entity) ->
-    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    ActionId = occi_invoke:id(Invoke),
-    Attributes = occi_invoke:attributes(Invoke),
-    case gen_server:call(B, {action, [Location, ActionId, Attributes]}, ?TIMEOUT) of
-	{ok, Entity2, Serial} ->
+  Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
+  ActionId = occi_invoke:id(Invoke),
+  Attributes = occi_invoke:attributes(Invoke),
+  case gen_server:call(B, {action, [Location, ActionId, Attributes]}, ?TIMEOUT) of
+    {ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %% @doc Delete an entity
 %% @end
 -spec delete(t(), Id :: binary()) -> ok | {error, error()}.
 delete(#backend{ id=B, raw_mountpoint=Prefix }, Id) when is_binary(Id) ->
-    gen_server:call(B, {delete, [occi_uri:change_prefix(rm, Prefix, Id)]}, ?TIMEOUT).
+  gen_server:call(B, {delete, [occi_uri:change_prefix(rm, Prefix, Id)]}, ?TIMEOUT).
 
 
 %% @doc Add a mixin to an existing entity
 %% @end
 -spec mixin(t(), occi_entity:t(), occi_mixin:t(), maps:map()) -> {ok, occi_entity:t()} | {error, error()}.
 mixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin, Attributes) ->
-    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}, ?TIMEOUT) of
-	{ok, Entity2, Serial} ->
+  Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
+  case gen_server:call(B, {mixin, [Location, Mixin, Attributes]}, ?TIMEOUT) of
+    {ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %% @doc Remove mixin from existing entity
 %% @end
 -spec unmixin(t(), occi_entity:t(), occi_mixin:t()) -> {ok, occi_entity:t()} | {error, error()}.
 unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
-    Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
-    case gen_server:call(B, {unmixin, [Location, Mixin]}, ?TIMEOUT) of
-	{ok, Entity2, Serial} ->
+  Location = occi_uri:change_prefix(rm, Prefix, occi_entity:location(Entity)),
+  case gen_server:call(B, {unmixin, [Location, Mixin]}, ?TIMEOUT) of
+    {ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %% @doc Retrieve a list of entities
@@ -375,24 +375,24 @@ unmixin(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Mixin) ->
 %% number: integer > 0 | undefined (infinite)
 %% @end
 -spec collection(t(),
-		 Id :: occi_category:id() | binary(),
-		 Filter :: erocci_filter:t(),
-		 Start :: integer(), Number :: integer() | undefined) ->
-			{ok, [occi_entity:location()], erocci_node:serial()} | {error, error()}.
+                 Id :: occi_category:id() | binary(),
+                 Filter :: erocci_filter:t(),
+                 Start :: integer(), Number :: integer() | undefined) ->
+                    {ok, [occi_entity:location()], erocci_node:serial()} | {error, error()}.
 collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) ->
-    Id2 = case Id of
-	      Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
-	      CatId when ?is_category_id(CatId) -> CatId
-	  end,
-    case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}, ?TIMEOUT) of
-	{ok, Locations, Serial} ->
+  Id2 = case Id of
+          Path when is_binary(Path) -> occi_uri:change_prefix(rm, Prefix, Path);
+          CatId when ?is_category_id(CatId) -> CatId
+        end,
+  case gen_server:call(B, {collection, [Id2, Filter, Start, Number]}, ?TIMEOUT) of
+    {ok, Locations, Serial} ->
 	    Locations2 = lists:map(fun(Location) ->
-					   occi_uri:change_prefix(add, Prefix, Location)
-				   end, Locations),
+                                 occi_uri:change_prefix(add, Prefix, Location)
+                             end, Locations),
 	    {ok, Locations2, Serial};
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 %%--------------------------------------------------------------------
@@ -404,15 +404,15 @@ collection(#backend{ id=B, raw_mountpoint=Prefix }, Id, Filter, Start, Number) -
 %%--------------------------------------------------------------------
 -spec init(t()) -> {ok, term()} | {stop, term()} | ignore.
 init(#backend{id=Id, handler=Mod, opts=Opts}) ->
-    try Mod:init(Opts) of
-        {ok, Capabilities, BackendState} ->
+  try Mod:init(Opts) of
+      {ok, Capabilities, BackendState} ->
 	    S = #state{ref=Id, mod=Mod, capabilities=Capabilities, state=BackendState},
 	    {ok, S};
-        {error, Err} ->
-            {stop, Err}
-    catch _:Err ->
-            {stop, Err}
-    end.
+      {error, Err} ->
+      {stop, Err}
+  catch _:Err ->
+      {stop, Err}
+  end.
 
 
 %%--------------------------------------------------------------------
@@ -423,13 +423,13 @@ init(#backend{id=Id, handler=Mod, opts=Opts}) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
-    try erlang:apply(Mod, Cmd, Args ++ [BState]) of
-	{Reply, BState2} ->
+  try erlang:apply(Mod, Cmd, Args ++ [BState]) of
+      {Reply, BState2} ->
 	    {reply, Reply, State#state{state=BState2}}
-    catch Cls:Err ->
+  catch Cls:Err ->
 	    erlang:display(erlang:get_stacktrace()),
 	    {reply, {error, {internal, {Cls, Err}}}, State}
-    end.
+  end.
 
 
 %%--------------------------------------------------------------------
@@ -440,7 +440,7 @@ handle_call({Cmd, Args}, _From, #state{mod=Mod, state=BState}=State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_cast(_Msg, State) ->
-    {noreply, State}.
+  {noreply, State}.
 
 
 %%--------------------------------------------------------------------
@@ -451,7 +451,7 @@ handle_cast(_Msg, State) ->
 %% @end
 %%--------------------------------------------------------------------
 handle_info(_Info, State) ->
-    {noreply, State}.
+  {noreply, State}.
 
 
 %%--------------------------------------------------------------------
@@ -465,7 +465,7 @@ handle_info(_Info, State) ->
 %% @end
 %%--------------------------------------------------------------------
 terminate(_Reason, #state{mod=Mod, state=State}) ->
-    Mod:terminate(State).
+  Mod:terminate(State).
 
 
 %%--------------------------------------------------------------------
@@ -477,30 +477,30 @@ terminate(_Reason, #state{mod=Mod, state=State}) ->
 %% @end
 %%--------------------------------------------------------------------
 code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+  {ok, State}.
 
 
 %%%
 %%% Priv
 %%%
 create_and_gen_location(#backend{ id=B, raw_mountpoint=Prefix }, Entity, Owner, Group) ->
-    Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
-    case gen_server:call(B, {create, [Entity1, Owner, Group]}, ?TIMEOUT) of
-	{ok, Location, Entity2, Serial} ->
+  Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
+  case gen_server:call(B, {create, [Entity1, Owner, Group]}, ?TIMEOUT) of
+    {ok, Location, Entity2, Serial} ->
 	    Location1 = occi_uri:change_prefix(add, Prefix, Location),
 	    Entity3 = occi_entity:change_prefix(add, Prefix, occi_entity:location(Location1, Entity2)),
 	    {ok, Entity3, Serial};
-	{error, _}=Err -> 
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 create_with_location(#backend{ id=B, raw_mountpoint=Prefix }, Location, Entity, Owner, Group) ->
-    Location1 = occi_uri:change_prefix(rm, Prefix, Location),
-    Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
-    case gen_server:call(B, {create, [Location1, Entity1, Owner, Group]}, ?TIMEOUT) of
-	{ok, Entity2, Serial} ->
+  Location1 = occi_uri:change_prefix(rm, Prefix, Location),
+  Entity1 = occi_entity:change_prefix(rm, Prefix, Entity),
+  case gen_server:call(B, {create, [Location1, Entity1, Owner, Group]}, ?TIMEOUT) of
+    {ok, Entity2, Serial} ->
 	    {ok, occi_entity:change_prefix(add, Prefix, Entity2), Serial};
-	{error, _}=Err -> 
+    {error, _}=Err ->
 	    Err
-    end.
+  end.

@@ -1,13 +1,13 @@
 %%%-------------------------------------------------------------------
 %%% @author Jean Parpaillon <jean.parpaillon@free.fr>
 %%% @copyright (c) 2013-2016 Jean Parpaillon
-%%% 
+%%%
 %%% This file is provided to you under the license described
 %%% in the file LICENSE at the root of the project.
 %%%
 %%% You can also download the LICENSE file from the following URL:
 %%% https://github.com/erocci/erocci/blob/master/LICENSE
-%%% 
+%%%
 %%% @doc
 %%%
 %%% @end
@@ -22,15 +22,15 @@
 -export([start/0]).
 
 %% Application callbacks
--export([start/2, 
-	 start_phase/3,
-	 stop/1]).
+-export([start/2,
+         start_phase/3,
+         stop/1]).
 
 %% @doc Start the erocci_core application
 %% @end
 -spec start() -> {ok, [atom()]} | {error, term()}.
 start() ->
-    applicaton:ensure_all_started(erocci_core).
+  applicaton:ensure_all_started(erocci_core).
 
 
 %%--------------------------------------------------------------------
@@ -50,10 +50,10 @@ start() ->
 %% @end
 %%--------------------------------------------------------------------
 start(normal, _Args) ->
-    erocci_core_sup:start_link();
+  erocci_core_sup:start_link();
 
 start(_StartType, _StartArgs) ->
-    {error, badarg}.
+  {error, badarg}.
 
 
 %% @doc Start phase `config' start listeners and backends, once
@@ -63,28 +63,28 @@ start(_StartType, _StartArgs) ->
 %% @end
 -spec start_phase(Phase :: atom(), Type :: atom(), Args :: term()) -> ok | {error, term()}.
 start_phase(mnesia, normal, _Args) ->
-    ?info("erocci_core start phase: mnesia", []),
-    Nodes = lists:foldl(fun (Backend, Acc) ->
-				erocci_backend:mnesia_disc_copies(Backend) ++ Acc
-			end, [], erocci_config:get(backends)),
-    case lists:subtract(Nodes, mnesia:table_info(schema, disc_copies)) of
-	[] ->
+  ?info("erocci_core start phase: mnesia", []),
+  Nodes = lists:foldl(fun (Backend, Acc) ->
+                          erocci_backend:mnesia_disc_copies(Backend) ++ Acc
+                      end, [], erocci_config:get(backends)),
+  case lists:subtract(Nodes, mnesia:table_info(schema, disc_copies)) of
+    [] ->
 	    ?debug("No Mnesia schema to create", []),
 	    ok;
-	Creates ->
+    Creates ->
 	    ?debug("Create Mnesia schema on nodes: ~p", [Creates]),
 	    _ = mnesia:stop(),
 	    ok = mnesia:create_schema(Creates),
 	    restart("Mnesia schema created")
-    end;
+  end;
 
 start_phase(listeners, normal, _Args) ->
-    ?info("erocci_core start phase: listeners", []),
-    start_listeners(erocci_config:get(listeners));
+  ?info("erocci_core start phase: listeners", []),
+  start_listeners(erocci_config:get(listeners));
 
 start_phase(backends, normal, _Args) ->
-    ?info("erocci_core start phase: backends", []),
-    start_backends(erocci_config:get(backends), false).
+  ?info("erocci_core start phase: backends", []),
+  start_backends(erocci_config:get(backends), false).
 
 
 %%--------------------------------------------------------------------
@@ -98,60 +98,60 @@ start_phase(backends, normal, _Args) ->
 %% @end
 %%--------------------------------------------------------------------
 stop(_State) ->
-    ok.
+  ok.
 
 
 %%%
 %%% Priv
 %%%
 start_listeners([]) ->
-    ok;
+  ok;
 
 start_listeners([ L | Tail ]) ->
-    case erocci_listeners:add(L) of
-	{ok, Pid} ->
+  case erocci_listeners:add(L) of
+    {ok, Pid} ->
 	    ?info("Started listener ~p: ~p", [erocci_listener:id(L), Pid]),
 	    start_listeners(Tail);
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 start_backends([], true) ->
-    ok;
+  ok;
 
 start_backends([], false) ->
-    ?info("No root backend, mount default one"),
-    start_backends2(erocci_backend:default(), [], true);
+  ?info("No root backend, mount default one"),
+  start_backends2(erocci_backend:default(), [], true);
 
 start_backends([ B | Tail ], true) ->
-    case erocci_backend:is_root(B) of
-	true ->
+  case erocci_backend:is_root(B) of
+    true ->
 	    {error, duplicate_root_backend};
-	false ->
+    false ->
 	    start_backends2(B, Tail, true)
-    end;
+  end;
 
 start_backends([ B | Tail ], false) ->
-    start_backends2(B, Tail, erocci_backend:is_root(B)).
+  start_backends2(B, Tail, erocci_backend:is_root(B)).
 
 
 start_backends2(Backend, Others, Root) ->
-    case erocci_backends:mount(Backend) of
-	ok ->
-	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend), 
-					       case erocci_backend:path(Backend) of
-						   <<>> -> <<"/">>;
-						   P -> P
-					       end]),
+  case erocci_backends:mount(Backend) of
+    ok ->
+	    ?info("Mounted backend ~p on ~s", [erocci_backend:id(Backend),
+                                         case erocci_backend:path(Backend) of
+                                           <<>> -> <<"/">>;
+                                           P -> P
+                                         end]),
 	    start_backends(Others, Root);
-	{error, _}=Err ->
+    {error, _}=Err ->
 	    Err
-    end.
+  end.
 
 
 restart(Msg) ->
-    ?info("###~n"
-	  "### RESTARTING: ~s~n"
-	  "###~n", [Msg]),
-    init:restart().
+  ?info("###~n"
+        "### RESTARTING: ~s~n"
+        "###~n", [Msg]),
+  init:restart().
